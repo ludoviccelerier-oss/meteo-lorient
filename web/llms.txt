@@ -1,0 +1,57 @@
+# Météo Lorient
+
+> Site gratuit et non officiel qui affiche sur une carte le vent mesuré en temps réel, les prévisions de vent et la hauteur des vagues sur le littoral du pays de Lorient, en Bretagne sud, de Concarneau à Étel : rade de Lorient, île de Groix, Gâvres, Port-Louis, Larmor-Plage, Ploemeur, Guidel, Le Pouldu, Trévignon, Beg Meil, Glénan. Pour marins, plaisanciers, pêcheurs, surfeurs, kitesurfeurs et véliplanchistes. Offert par Windorah, agence immobilière bretonne basée à Locmiquélic (https://windorah.fr).
+
+- Site : https://meteo-lorient.netlify.app/
+- Zone couverte : latitude 47,55° à 47,95° N, longitude 4,05° à 3,10° O (Finistère sud et Morbihan).
+- Unités : vent en nœuds, vagues en mètres, période en secondes, directions d'où vient le vent ou la houle.
+- Données indicatives : avant de prendre la mer, consulter le bulletin météo marine officiel de Météo-France.
+
+## Vent en temps réel
+
+Source : réseau de capteurs windmorbihan (https://www.windmorbihan.com), porté par la Compagnie des Ports du Morbihan, l'ENVSN et Centrale Nantes / SEM-REV. Vent moyen, rafales et direction, mis à jour toutes les 5 minutes, avec l'historique des 6 dernières heures.
+
+- Beg Meil (Fouesnant) · GPS 47.8545, -3.9762
+- Pointe de Trévignon (Trégunc) · GPS 47.7933, -3.8554
+- Le Drenec (archipel des Glénan) · GPS 47.7179, -4.0088
+- Feu de Kerroch (Ploemeur, entrée de la rade de Lorient) · GPS 47.6995, -3.4610
+- Sémaphore de Groix (île de Groix) · GPS 47.6523, -3.5023
+- Sémaphore d'Étel (barre d'Étel) · GPS 47.6461, -3.2144
+
+## Prévisions de vent
+
+Source : modèle AROME de Météo-France, résolution 0,01° (environ 1,3 km), données ouvertes (Licence Ouverte Etalab, https://www.data.gouv.fr/datasets/paquets-arome-resolution-0-01deg). Vent moyen et rafales à 10 m. Rafraîchies toutes les heures ; chaque heure utilise le calcul (run) le plus récent. Horizon 48 heures : heure par heure jusqu'à +24 h, puis toutes les 3 heures.
+
+## Vagues
+
+Source : modèle MFWAM de Météo-France, résolution 0,025° (environ 2,5 km), données ouvertes (https://www.data.gouv.fr/datasets/paquets-de-modele-de-vagues-mfwam-resolution-0-025deg). Hauteur significative des vagues, période pic et direction moyenne, sur 48 heures.
+
+## Questions fréquentes
+
+### Où voir le vent en temps réel à Lorient et à Groix ?
+
+Météo Lorient affiche le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes.
+
+### D'où viennent les prévisions de vent ?
+
+Du modèle AROME de Météo-France à 0,01° (environ 1,3 km), rafraîchi toutes les heures, sur 48 heures.
+
+### Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?
+
+La couche Vagues affiche le modèle MFWAM de Météo-France : hauteur significative, période pic et direction de la houle, sur 48 heures. Toucher la carte donne les valeurs à un endroit précis.
+
+### Les données sont-elles officielles ?
+
+Non. Site indépendant qui réutilise des données publiques ; prévisions indicatives.
+
+### Qui a créé Météo Lorient ?
+
+Windorah, agence immobilière bretonne basée à Locmiquélic, qui offre ce site gratuit, sans publicité ni compte, aux habitants et aux usagers de la mer du pays de Lorient.
+
+## Voir aussi
+
+- Bateaux de la rade : prochains bateaux (navettes maritimes B1, B2, B3, B5) entre Lorient, Locmiquélic et Port-Louis, en temps réel : https://batobus.netlify.app/
+
+## Éditeur
+
+Windorah, agence immobilière bretonne basée à Locmiquélic : https://windorah.fr

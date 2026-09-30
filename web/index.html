@@ -3,40 +3,222 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Météo Lorient</title>
-  <meta name="description" content="Vent réel, prévisions AROME et vagues de Concarneau à Étel : Groix, rade de Lorient. Pour marins, surfeurs et kitesurfeurs.">
-  <meta name="theme-color" content="#0b2239">
+  <title>Météo Lorient · Vent en temps réel, prévisions et vagues de Concarneau à Étel</title>
+  <meta name="description" content="Vent en temps réel des balises de Groix, Kerroch, Étel, Trévignon et Beg Meil, prévisions de vent AROME à 1,3 km et hauteur des vagues sur une carte : rade de Lorient, Groix, Concarneau, Étel. Gratuit, pour marins, surfeurs et kitesurfeurs.">
+  <link rel="canonical" href="https://meteo-lorient.netlify.app/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="geo.region" content="FR-56">
+  <meta name="geo.placename" content="Lorient">
+  <meta name="geo.position" content="47.7483;-3.3667">
+  <meta name="ICBM" content="47.7483, -3.3667">
+  <meta property="og:url" content="https://meteo-lorient.netlify.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Météo Lorient">
+  <meta property="og:title" content="Météo Lorient · Vent réel, prévisions et vagues">
+  <meta property="og:description" content="Le vent mesuré en ce moment sur les balises de Groix, Kerroch et Étel, les prévisions AROME et les vagues, sur une carte de Concarneau à Étel.">
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#DA4445">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://meteo-lorient.netlify.app/#application",
+      "name": "Météo Lorient",
+      "url": "https://meteo-lorient.netlify.app/",
+      "description": "Carte gratuite du vent en temps réel (balises windmorbihan), des prévisions de vent AROME de Météo-France et de la hauteur des vagues (MFWAM), de Concarneau à Étel : rade de Lorient, Groix, Gâvres, Port-Louis.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Tous navigateurs",
+      "inLanguage": "fr",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "audience": { "@type": "Audience", "audienceType": "Marins, plaisanciers, surfeurs, kitesurfeurs, véliplanchistes, pêcheurs" },
+      "spatialCoverage": {
+        "@type": "Place",
+        "name": "Littoral de Concarneau à Étel (Finistère sud et Morbihan)",
+        "geo": { "@type": "GeoShape", "box": "47.55 -4.05 47.95 -3.10" }
+      },
+      "isBasedOn": [
+        { "@type": "Dataset", "name": "Paquets AROME - Résolution 0,01°", "url": "https://www.data.gouv.fr/datasets/paquets-arome-resolution-0-01deg", "creator": { "@type": "Organization", "name": "Météo-France" }, "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/" },
+        { "@type": "Dataset", "name": "Paquets de modèle de vagues - MFWAM - Résolution 0.025°", "url": "https://www.data.gouv.fr/datasets/paquets-de-modele-de-vagues-mfwam-resolution-0-025deg", "creator": { "@type": "Organization", "name": "Météo-France" }, "license": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/" },
+        { "@type": "WebSite", "name": "windmorbihan", "url": "https://www.windmorbihan.com" }
+      ],
+      "author": { "@id": "https://windorah.fr/#organisation" },
+      "publisher": { "@id": "https://windorah.fr/#organisation" },
+      "sponsor": { "@id": "https://windorah.fr/#organisation" },
+      "about": [
+        { "@id": "https://meteo-lorient.netlify.app/#balise-beg-meil" },
+        { "@id": "https://meteo-lorient.netlify.app/#balise-trevignon" },
+        { "@id": "https://meteo-lorient.netlify.app/#balise-drenec" },
+        { "@id": "https://meteo-lorient.netlify.app/#balise-kerroch" },
+        { "@id": "https://meteo-lorient.netlify.app/#balise-groix" },
+        { "@id": "https://meteo-lorient.netlify.app/#balise-etel" }
+      ],
+      "relatedLink": "https://batobus.netlify.app/"
+    },
+    {
+      "@type": "RealEstateAgent",
+      "@id": "https://windorah.fr/#organisation",
+      "name": "Windorah",
+      "url": "https://windorah.fr",
+      "logo": "https://meteo-lorient.netlify.app/assets/logo-windorah.png",
+      "description": "Agence immobilière bretonne basée à Locmiquélic : investissement, conseil et transaction.",
+      "address": { "@type": "PostalAddress", "addressLocality": "Locmiquélic", "postalCode": "56570", "addressRegion": "Bretagne", "addressCountry": "FR" },
+      "areaServed": ["Locmiquélic", "Port-Louis", "Lorient", "Rade de Lorient"]
+    },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-beg-meil", "name": "Balise de vent de Beg Meil (Fouesnant)", "geo": { "@type": "GeoCoordinates", "latitude": 47.8545, "longitude": -3.9762 } },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-trevignon", "name": "Balise de vent de la pointe de Trévignon (Trégunc)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7933, "longitude": -3.8554 } },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-drenec", "name": "Balise de vent du Drenec (archipel des Glénan)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7179, "longitude": -4.0088 } },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-kerroch", "name": "Balise de vent du feu de Kerroch (Ploemeur)", "geo": { "@type": "GeoCoordinates", "latitude": 47.6995, "longitude": -3.4610 } },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-groix", "name": "Balise de vent du sémaphore de Groix", "geo": { "@type": "GeoCoordinates", "latitude": 47.6523, "longitude": -3.5023 } },
+    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-etel", "name": "Balise de vent du sémaphore d'Étel", "geo": { "@type": "GeoCoordinates", "latitude": 47.6461, "longitude": -3.2144 } },
+    {
+      "@type": "FAQPage",
+      "@id": "https://meteo-lorient.netlify.app/#faq",
+      "mainEntity": [
+        { "@type": "Question", "name": "Où voir le vent en temps réel à Lorient et à Groix ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures." } },
+        { "@type": "Question", "name": "D'où viennent les prévisions de vent ?", "acceptedAnswer": { "@type": "Answer", "text": "Du modèle AROME de Météo-France à la résolution de 0,01° (environ 1,3 km), publié en données ouvertes. La carte est rafraîchie toutes les heures et prend, pour chaque heure, le calcul le plus récent. Elle couvre les 48 prochaines heures : heure par heure jusqu'à +24 h, puis toutes les 3 heures." } },
+        { "@type": "Question", "name": "Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?", "acceptedAnswer": { "@type": "Answer", "text": "La couche Vagues affiche le modèle MFWAM de Météo-France (maille d'environ 2,5 km) : hauteur significative des vagues, période pic et direction de la houle, sur 48 heures. Touchez la carte pour lire les valeurs à un endroit précis." } },
+        { "@type": "Question", "name": "Les données de Météo Lorient sont-elles officielles ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. Météo Lorient est un site indépendant qui réutilise des données publiques. Les prévisions sont indicatives : avant de prendre la mer, consultez le bulletin météo marine officiel de Météo-France et les avis de coup de vent." } },
+        { "@type": "Question", "name": "Qui a créé Météo Lorient ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient est un site gratuit, sans publicité ni compte à créer, offert par Windorah, agence immobilière bretonne basée à Locmiquélic, pour les habitants et les usagers de la mer du pays de Lorient." } }
+      ]
+    }
+  ]
+}
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23DA4445'/%3E%3Cpath d='M7 12h12a3 3 0 1 0-3-3M7 17h17a3 3 0 1 1-3 3M7 22h8' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://ludoviccelerier-oss.github.io" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
-  <header class="bar">
-    <h1>Météo Lorient</h1>
-    <nav class="layers" aria-label="Couches">
-      <label><input type="checkbox" id="l-live" checked> Vent réel</label>
-      <label><input type="checkbox" id="l-wind" checked> Prévision vent</label>
-      <label><input type="checkbox" id="l-waves"> Vagues</label>
-    </nav>
+  <div class="offer">
+    Ce site vous est offert par <a href="https://windorah.fr" target="_blank" rel="noopener"><strong>Windorah</strong></a>, agence immobilière bretonne basée à Locmiquélic.
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M6 12h12a3 3 0 1 0-3-3M6 17h17a3 3 0 1 1-3 3M6 22h8"/></svg>
+      </span>
+      <div>
+        <h1>Météo Lorient</h1>
+        <p class="brand-sub">Vent réel · prévisions · vagues · de Concarneau à Étel</p>
+      </div>
+    </div>
+    <div class="clock" aria-live="off">
+      <span id="clock-time">--:--</span>
+      <span id="clock-date"></span>
+    </div>
   </header>
 
-  <main class="map-wrap">
-    <div id="map" aria-label="Carte"></div>
-    <aside class="legend" id="legend"></aside>
-    <div class="status" id="status" role="status"></div>
+  <main class="layout">
+    <section class="map-panel" aria-label="Carte du vent et des vagues">
+      <div class="layers" role="group" aria-label="Couches affichées">
+        <button type="button" class="chip" id="l-live" aria-pressed="true">Vent réel</button>
+        <button type="button" class="chip" id="l-wind" aria-pressed="true">Prévision vent</button>
+        <button type="button" class="chip" id="l-waves" aria-pressed="false">Vagues</button>
+      </div>
+      <div class="map-wrap">
+        <div id="map" role="application" aria-label="Carte interactive de Concarneau à Étel"></div>
+        <div id="map-status" class="map-status"></div>
+      </div>
+      <div class="timeline" aria-label="Heure de prévision">
+        <button id="play" class="icon-btn" type="button" aria-label="Lecture de l'animation">▶</button>
+        <input id="slider" type="range" min="0" max="0" value="0" step="1" aria-label="Heure de prévision">
+        <div class="when">
+          <strong id="when-label">—</strong>
+          <button id="now" class="chip chip-sm" type="button">Maintenant</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="board" aria-labelledby="board-title">
+      <div class="board-head">
+        <h2 id="board-title">Vent mesuré maintenant</h2>
+        <p class="board-sub" id="board-sub">Balises windmorbihan, en nœuds</p>
+      </div>
+      <div id="board-list" class="board-list">
+        <p class="empty">Chargement des balises…</p>
+      </div>
+      <p class="board-tip">Touchez la carte pour lire la prévision de vent et de vagues à un endroit précis, à l'heure choisie sous la carte.</p>
+    </section>
   </main>
 
-  <section class="timeline" aria-label="Échéance de prévision">
-    <button id="play" type="button" aria-label="Lecture">▶</button>
-    <input id="slider" type="range" min="0" max="0" value="0" step="1" aria-label="Heure de prévision">
-    <div class="when">
-      <strong id="when-label">—</strong>
-      <button id="now" type="button">Maintenant</button>
+  <section class="seo" aria-labelledby="seo-title">
+    <h2 id="seo-title">Le vent à Lorient en temps réel, les prévisions et les vagues</h2>
+    <p>
+      <strong>Météo Lorient</strong> réunit sur une seule carte ce qu'il faut savoir avant d'aller sur l'eau
+      entre <strong>Concarneau</strong> et <strong>Étel</strong> : le <strong>vent mesuré en ce moment</strong> par les
+      balises du littoral, la <strong>prévision de vent</strong> heure par heure sur 48 heures et la
+      <strong>hauteur des vagues</strong>, autour de <strong>Groix</strong>, de la <strong>rade de Lorient</strong>,
+      de Gâvres, Port-Louis, Larmor-Plage, Ploemeur, Guidel, Le Pouldu, Trévignon et Beg Meil.
+    </p>
+    <p>
+      Pensé pour les <strong>marins</strong>, plaisanciers, pêcheurs, <strong>surfeurs</strong>,
+      <strong>kitesurfeurs</strong> et véliplanchistes du pays de Lorient : pas d'application à installer, pas de
+      compte, pas de publicité. La page s'ouvre sur téléphone comme sur ordinateur et se met à jour toute seule.
+    </p>
+
+    <h3>Les balises de vent en temps réel</h3>
+    <ul class="seo-list">
+      <li><strong>Beg Meil</strong>, Fouesnant · 47,854° N, 3,976° O</li>
+      <li><strong>Pointe de Trévignon</strong>, Trégunc · 47,793° N, 3,855° O</li>
+      <li><strong>Le Drenec</strong>, archipel des Glénan · 47,718° N, 4,009° O</li>
+      <li><strong>Feu de Kerroch</strong>, Ploemeur, à l'entrée de la rade de Lorient · 47,700° N, 3,461° O</li>
+      <li><strong>Sémaphore de Groix</strong>, île de Groix · 47,652° N, 3,502° O</li>
+      <li><strong>Sémaphore d'Étel</strong>, barre d'Étel · 47,646° N, 3,214° O</li>
+    </ul>
+    <p>Vent moyen, rafales et direction sont relevés toutes les 5 minutes, avec la courbe des 6 dernières heures.</p>
+
+    <h3>D'où viennent les données</h3>
+    <ul class="seo-list">
+      <li><strong>Vent réel</strong> : réseau de capteurs <a href="https://www.windmorbihan.com" target="_blank" rel="noopener">windmorbihan</a> (Compagnie des Ports du Morbihan, ENVSN, Centrale Nantes / SEM-REV), mis à jour toutes les 5 minutes.</li>
+      <li><strong>Prévision de vent</strong> : modèle <strong>AROME</strong> de Météo-France à 0,01° (environ 1,3 km), vent moyen et rafales à 10 m, rafraîchi toutes les heures, jusqu'à 48 heures.</li>
+      <li><strong>Vagues</strong> : modèle <strong>MFWAM</strong> de Météo-France à 0,025° (environ 2,5 km), hauteur significative, période pic et direction, jusqu'à 48 heures.</li>
+    </ul>
+
+    <h3>Questions fréquentes</h3>
+    <div class="faq">
+      <details><summary>Où voir le vent en temps réel à Lorient et à Groix ?</summary><p>Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures.</p></details>
+      <details><summary>D'où viennent les prévisions de vent ?</summary><p>Du modèle AROME de Météo-France à la résolution de 0,01° (environ 1,3 km), publié en données ouvertes. La carte est rafraîchie toutes les heures et prend, pour chaque heure, le calcul le plus récent. Elle couvre les 48 prochaines heures : heure par heure jusqu'à +24 h, puis toutes les 3 heures.</p></details>
+      <details><summary>Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?</summary><p>La couche Vagues affiche le modèle MFWAM de Météo-France (maille d'environ 2,5 km) : hauteur significative des vagues, période pic et direction de la houle, sur 48 heures. Touchez la carte pour lire les valeurs à un endroit précis.</p></details>
+      <details><summary>Les données de Météo Lorient sont-elles officielles ?</summary><p>Non. Météo Lorient est un site indépendant qui réutilise des données publiques. Les prévisions sont indicatives : avant de prendre la mer, consultez le bulletin météo marine officiel de Météo-France et les avis de coup de vent.</p></details>
+      <details><summary>Qui a créé Météo Lorient ?</summary><p>Météo Lorient est un site gratuit, sans publicité ni compte à créer, offert par Windorah, agence immobilière bretonne basée à Locmiquélic, pour les habitants et les usagers de la mer du pays de Lorient.</p></details>
     </div>
+
+    <p class="seo-credit">
+      Météo Lorient est un projet offert par <a href="https://windorah.fr" target="_blank" rel="noopener">Windorah</a>,
+      agence immobilière bretonne basée à Locmiquélic. Pour traverser la rade, voir aussi
+      <a href="https://batobus.netlify.app/" target="_blank" rel="noopener">Bateaux de la rade</a>, les prochains bateaux en temps réel.
+    </p>
   </section>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.js"></script>
-  <script src="app.js"></script>
+  <footer class="footer">
+    <div class="footer-text">
+      <p class="disclaimer">
+        Site indépendant, non officiel. Vent réel © windmorbihan ; prévisions © Météo-France (AROME, MFWAM), Licence Ouverte Etalab.
+        Données indicatives : consultez le bulletin météo marine officiel avant de prendre la mer.
+      </p>
+      <p class="footer-links">
+        Voir aussi : <a href="https://batobus.netlify.app/" target="_blank" rel="noopener">Bateaux de la rade · horaires des navettes en temps réel</a>
+      </p>
+    </div>
+    <a class="signature" href="https://windorah.fr" target="_blank" rel="noopener">
+      <span>par</span>
+      <img src="assets/logo-windorah.png" alt="Windorah, agence immobilière à Locmiquélic" width="120" height="31" loading="lazy">
+    </a>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.js" defer></script>
+  <script src="app.js?v=2" defer></script>
 </body>
 </html>

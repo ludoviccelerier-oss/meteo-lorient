@@ -40,6 +40,24 @@ def fetch(url: str, headers: dict | None = None, timeout: int = 60, retries: int
     raise RuntimeError(f"{url} : {last}")
 
 
+def fetch_range(url: str, start: int, end: int, timeout: int = 60) -> tuple[bytes, int | None, bool]:
+    """Octets [start, end] d'un fichier : (données, taille totale, requête partielle honorée)."""
+    last = None
+    for attempt in range(3):
+        try:
+            req = Request(url, headers={"User-Agent": UA, "Range": f"bytes={start}-{end}"})
+            with urlopen(req, timeout=timeout) as resp:
+                data = resp.read()
+                if resp.status == 206:
+                    total = resp.headers.get("Content-Range", "").rsplit("/", 1)[-1]
+                    return data, int(total) if total.isdigit() else None, True
+                return data, len(data), False  # serveur sans Range : fichier complet
+        except (HTTPError, URLError, TimeoutError) as exc:
+            last = exc
+            time.sleep(2 ** (attempt + 1))
+    raise RuntimeError(f"{url} : {last}")
+
+
 def fetch_json(url: str, **kw):
     return json.loads(fetch(url, **kw).decode("utf-8", errors="replace"))
 

@@ -1,147 +1,265 @@
+/* Charte reprise de Bateaux de la rade (batobus.netlify.app) : rouge Windorah, Montserrat. */
 :root {
-  --bg: #0b2239;
-  --panel: rgba(11, 34, 57, 0.92);
-  --text: #f2f6fa;
-  --muted: #9fb3c8;
-  --accent: #3fb6ff;
-  --radius: 10px;
+  --brand: #DA4445;
+  --text: #333333;
+  --text-2: #666666;
+  --text-3: #999999;
+  --bg: #FDFCFA;
+  --card: #FFFFFF;
+  --line: #ECE8E1;
+  --radius: 14px;
 }
 
 * { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  height: 100%;
-  background: var(--bg);
+html, body { margin: 0; }
+body {
+  font-family: "Montserrat", system-ui, sans-serif;
   color: var(--text);
-  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-
-body { display: flex; flex-direction: column; }
-
-.bar {
+  background: var(--bg);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+}
+h1, h2, h3, p { margin: 0; }
+
+/* ---------- Bandeau Windorah ---------- */
+.offer {
+  background: var(--brand);
+  color: #fff;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 16px 20px;
+  line-height: 1.4;
+}
+.offer a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.offer strong { font-weight: 800; font-size: 17px; letter-spacing: 0.02em; }
+
+/* ---------- En-tête ---------- */
+.topbar {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 8px 16px;
-  background: var(--bg);
-  z-index: 1000;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--brand);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.brand-mark svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; }
+.brand h1 { font-size: 20px; font-weight: 700; color: var(--brand); letter-spacing: -0.01em; }
+.brand-sub { font-size: 12px; color: var(--text-2); }
+.clock { text-align: right; display: flex; flex-direction: column; }
+#clock-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#clock-date { font-size: 12px; color: var(--text-2); }
+
+/* ---------- Mise en page ---------- */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  gap: 20px;
+  padding: 20px 24px;
+  align-items: start;
 }
 
-.bar h1 { margin: 0; font-size: 17px; letter-spacing: 0.02em; }
-
+/* ---------- Carte ---------- */
+.map-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
 .layers { display: flex; flex-wrap: wrap; gap: 6px; }
+.map-wrap { position: relative; height: min(64vh, 620px); min-height: 360px; }
+#map { position: absolute; inset: 0; border-radius: 10px; background: #DDEBF4; }
 
-.layers label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+.map-status {
+  position: absolute;
+  left: 10px; bottom: 22px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  user-select: none;
-}
-
-.layers input { accent-color: var(--accent); margin: 0; }
-
-.map-wrap { position: relative; flex: 1; min-height: 0; }
-#map { position: absolute; inset: 0; }
-
-.timeline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: var(--bg);
-  z-index: 1000;
-}
-
-.timeline input[type="range"] { flex: 1; accent-color: var(--accent); min-width: 0; }
-
-.timeline button {
-  border: 0;
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--text);
-  padding: 6px 10px;
+  max-width: calc(100% - 20px);
+}
+.map-status:empty { display: none; }
+
+.chip {
   font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text-2);
   cursor: pointer;
 }
+.chip:hover { border-color: #D8D2C8; color: var(--text); }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip-sm { font-size: 12px; padding: 3px 10px; }
 
-#play { width: 36px; }
-
-.when { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 128px; }
-.when strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.when button { font-size: 12px; padding: 2px 8px; }
-
-.legend {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 900;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  background: var(--panel);
-  font-size: 12px;
-  max-width: calc(100% - 20px);
+.timeline { display: flex; align-items: center; gap: 12px; }
+.timeline input[type="range"] { flex: 1; min-width: 0; accent-color: var(--brand); }
+.icon-btn {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
 }
+.when { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 150px; }
+.when strong { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.legend .scale { display: flex; margin-top: 4px; }
-.legend .scale span { flex: 1; min-width: 26px; padding: 2px 0; text-align: center; color: #0b2239; font-weight: 600; }
-.legend .title { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 12px; color: var(--text-2); }
+.legend .scale { display: flex; margin-top: 4px; border-radius: 6px; overflow: hidden; }
+.legend .scale span { min-width: 30px; padding: 2px 0; text-align: center; color: #1f2d3a; font-weight: 700; font-size: 11px; }
 
-.status {
-  position: absolute;
-  left: 10px;
-  bottom: 28px;
-  z-index: 900;
-  padding: 6px 10px;
+/* ---------- Balises ---------- */
+.board { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.board-head { display: flex; flex-direction: column; gap: 2px; }
+.board-head h2 { font-size: 18px; font-weight: 700; }
+.board-sub { font-size: 12.5px; color: var(--text-2); }
+.board-list { display: flex; flex-direction: column; gap: 10px; }
+.board-tip { font-size: 12.5px; color: var(--text-2); }
+.empty { font-size: 13.5px; color: var(--text-2); }
+
+.station-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 12px;
-  max-width: calc(100% - 20px);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.station-card:hover, .station-card:focus-visible { border-color: var(--brand); outline: none; }
+.station-card.stale { opacity: 0.6; }
+.station-name { font-size: 15px; font-weight: 700; }
+.station-town { font-size: 11.5px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.station-wind { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.station-wind .kt { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.station-wind .kt small { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.station-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-2); }
+.station-card svg.spark { grid-column: 1 / -1; width: 100%; height: 34px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
 
-.status:empty { display: none; }
-
-/* Balise de vent réel */
+/* Marqueurs de la carte */
 .live-icon { background: none; border: 0; }
 .live-icon .pin {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  display: flex; align-items: center; gap: 2px;
   transform: translate(-50%, -50%);
   width: max-content;
-  padding: 2px 6px 2px 2px;
+  padding: 2px 8px 2px 2px;
   border-radius: 999px;
   background: #fff;
-  color: #0b2239;
-  font-weight: 700;
-  font-size: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  font-family: "Montserrat", sans-serif;
+  font-weight: 800;
+  font-size: 12.5px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
+.live-icon .pin small { font-weight: 600; color: var(--text-2); }
 .live-icon .pin.stale { opacity: 0.55; }
-.live-icon svg { display: block; }
-
+.live-icon svg, .wave-arrow svg { display: block; }
 .wave-arrow { background: none; border: 0; pointer-events: none; }
 
+.leaflet-container { font-family: "Montserrat", sans-serif; }
 .leaflet-popup-content { margin: 10px 12px; font-size: 13px; }
-.leaflet-popup-content h3 { margin: 0 0 4px; font-size: 14px; }
-.leaflet-popup-content .muted { color: #5b6b7b; font-size: 12px; }
+.leaflet-popup-content h3 { margin: 0 0 4px; font-size: 14px; color: var(--brand); }
+.leaflet-popup-content .muted { color: var(--text-2); font-size: 12px; }
 .leaflet-popup-content table { border-collapse: collapse; margin-top: 4px; }
-.leaflet-popup-content td { padding: 1px 8px 1px 0; }
-.spark { display: block; margin-top: 6px; }
+.leaflet-popup-content td { padding: 1px 10px 1px 0; }
 
-@media (max-width: 560px) {
-  .bar h1 { font-size: 15px; }
-  .layers label { padding: 4px 8px; font-size: 13px; }
-  .legend { top: 8px; right: 8px; padding: 6px 8px; font-size: 11px; }
-  .legend .scale span { min-width: 20px; }
-  .status { left: 8px; right: 8px; bottom: 30px; font-size: 11px; }
+/* ---------- Texte de présentation (SEO) ---------- */
+.seo {
+  width: 100%;
+  min-width: 0;
+  max-width: 860px;
+  margin: 12px auto 36px;
+  padding: 0 24px;
+}
+.seo h2 { font-size: 22px; font-weight: 700; color: var(--brand); margin-bottom: 12px; }
+.seo h3 { font-size: 17px; font-weight: 700; margin: 26px 0 10px; }
+.seo p { margin: 0 0 12px; }
+.seo ul { margin: 0 0 12px; padding-left: 20px; }
+.seo li { margin-bottom: 6px; }
+.seo a { color: var(--brand); font-weight: 600; }
+.faq details { border-top: 1px solid var(--line); padding: 12px 0; }
+.faq details:last-child { border-bottom: 1px solid var(--line); }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq details p { margin: 8px 0 0; color: var(--text-2); }
+.seo-credit { margin-top: 24px !important; font-size: 13.5px; color: var(--text-2); }
+
+/* ---------- Pied de page ---------- */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+.footer-text { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.disclaimer { font-size: 12px; color: var(--text-2); }
+.footer-links { font-size: 13px; }
+.footer-links a { color: var(--brand); font-weight: 600; }
+.signature {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-2); font-size: 12px; text-decoration: none; flex-shrink: 0;
+}
+.signature img { height: 28px; width: auto; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  .offer { font-size: 14.5px; padding: 12px 16px; }
+  .topbar { padding: 12px 16px; }
+  .layout { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; gap: 16px; }
+  .map-panel { position: static; padding: 8px; }
+  .map-wrap { height: 62vh; min-height: 320px; }
+  .seo { padding: 0 16px; font-size: 14px; line-height: 1.55; }
+  .seo h2 { font-size: 19px; line-height: 1.3; }
+  .seo h3 { font-size: 16px; margin-top: 22px; }
+  .faq summary { font-size: 14px; }
+  .footer { flex-direction: column; align-items: flex-start; padding: 16px; }
+  .footer .disclaimer { font-size: 11.5px; }
+}
+@media (max-width: 480px) {
+  .brand h1 { font-size: 17px; }
+  .brand-sub { display: none; }
+  #clock-time { font-size: 19px; }
+  .when { min-width: 118px; }
+  .when strong { font-size: 12.5px; }
+  .map-status { left: 6px; bottom: 20px; font-size: 11px; padding: 4px 9px; }
   .leaflet-control-attribution { font-size: 9px; }
-  .when { min-width: 104px; }
 }

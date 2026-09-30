@@ -6,9 +6,11 @@ Les fichiers GRIB2 sont repérés via l'API data.gouv.fr (liste des ressources d
 jeu de données), téléchargés, découpés sur la zone (common.BBOX) et réduits en un seul
 JSON léger pour la carte. Chaque heure prend le run le plus récent qui la couvre ;
 un fichier déjà découpé n'est jamais retéléchargé
-(cache --cache, conservé entre passages par GitHub Actions).
+(dossier --state, conservé entre passages par GitHub Actions). Les prévisions ne sont
+recalculées qu'une fois par heure (--min-interval) ; entre-temps la dernière sortie est
+republiée telle quelle.
 
-  python3 scripts/fetch_forecast.py --cache state/forecast_cache.json --out public/data/forecast.json
+  python3 scripts/fetch_forecast.py --state state --out public/data/forecast.json
   python3 scripts/fetch_forecast.py --discover      # inventaire des fichiers, sans téléchargement
 """
 
@@ -27,7 +29,7 @@ from datetime import datetime, timezone
 import eccodes
 import numpy as np
 
-from common import BBOX, fetch, fetch_json, read_json, warn, write_json
+from common import BBOX, fetch, fetch_json, fetch_range, read_json, warn, write_json
 
 DATASETS = {
     "arome": "paquets-arome-resolution-0-01deg",
@@ -160,6 +162,80 @@ def flat(a: np.ndarray, nd: int = 1) -> list:
     return [None if math.isnan(x) else round(float(x), nd) for x in a.ravel()]
 
 
+# --- téléchargement ciblé ----------------------------------------------------------
+#
+# Un fichier AROME SP1 (≈ 23 Mo) porte 6 paramètres, dont 2 inutiles ici (température,
+# humidité) ; un fichier MFWAM (≈ 5 Mo) en porte 13, dont 3 utiles. Chaque message GRIB2
+# commence par un en-tête qui donne sa longueur et son paramètre : on lit ces en-têtes
+# par requêtes partielles (Range) et on ne télécharge que les messages utiles.
+
+HEAD_BYTES = 2048
+STATS = defaultdict(lambda: {"fetched": 0, "full": 0})
+
+
+def signature_from_head(head: bytes) -> tuple | None:
+    """(discipline, modèle de produit, catégorie, numéro) lus dans les sections 0 et 4."""
+    pos = 16
+    while pos + 11 <= len(head):
+        length = int.from_bytes(head[pos:pos + 4], "big")
+        if head[pos + 4] == 4:
+            return (head[6], int.from_bytes(head[pos + 7:pos + 9], "big"), head[pos + 9], head[pos + 10])
+        if length <= 0:
+            return None
+        pos += length
+    return None
+
+
+def signature_of(gid) -> tuple:
+    return tuple(eccodes.codes_get(gid, k) for k in
+                 ("discipline", "productDefinitionTemplateNumber", "parameterCategory", "parameterNumber"))
+
+
+def calibrate(path: str, names: set[str]) -> list[list]:
+    """Signatures des paramètres utiles, apprises sur un fichier complet."""
+    found = {}
+    with open(path, "rb") as fh:
+        while (gid := eccodes.codes_grib_new_from_file(fh)) is not None:
+            try:
+                short = eccodes.codes_get(gid, "shortName")
+                if short in names:
+                    found[short] = list(signature_of(gid))
+            finally:
+                eccodes.codes_release(gid)
+    if "pp1d" in found:  # la période pic suffit : inutile de télécharger les périodes moyennes
+        found = {k: v for k, v in found.items() if k == "pp1d" or k not in TP_NAMES}
+    return list(found.values())
+
+
+def ranged_download(url: str, sigs: list[list], tmp: str, model: str) -> str | None:
+    """Ne télécharge que les messages dont la signature est attendue ; None si impossible."""
+    wanted = {tuple(x) for x in sigs}
+    offset, total, parts, fetched = 0, None, [], 0
+    while total is None or offset < total:
+        head, size, partial = fetch_range(url, offset, offset + HEAD_BYTES - 1)
+        if not partial:
+            return None
+        total = total or size
+        fetched += len(head)
+        if head[:4] != b"GRIB":
+            return None
+        length = int.from_bytes(head[8:16], "big")
+        if signature_from_head(head) in wanted:
+            if length <= len(head):
+                parts.append(head[:length])
+            else:
+                body, _, _ = fetch_range(url, offset, offset + length - 1)
+                parts.append(body)
+                fetched += len(body)
+        offset += length
+    STATS[model]["fetched"] += fetched
+    STATS[model]["full"] += total or 0
+    path = os.path.join(tmp, url.rsplit("/", 1)[-1].split("?")[0])
+    with open(path, "wb") as fh:
+        fh.write(b"".join(parts))
+    return path
+
+
 def select_files(files: list[dict], max_h: int, now: float) -> list[dict]:
     """Pour chaque heure à venir, le fichier du run le plus récent qui la couvre.
 
@@ -235,9 +311,11 @@ def extract_waves(path: str) -> dict | None:
 
 MODELS = {
     "arome": {"package": AROME_PACKAGE, "fields": ("u", "v", "gust"), "extract": extract_arome,
+              "names": U_NAMES | V_NAMES | GUST_NAMES | UGUST_NAMES | VGUST_NAMES,
               "label": f"AROME 0,01° ({AROME_PACKAGE})", "extra": {"unit": "m/s"}},
     "waves": {"package": os.environ.get("WAVES_PACKAGE", "SP1"), "fields": ("hs", "dir", "tp"),
-              "extract": extract_waves, "label": "MFWAM 0,025°", "extra": {}},
+              "extract": extract_waves, "label": "MFWAM 0,025°", "extra": {},
+              "names": HS_NAMES | DIR_NAMES | TP_NAMES},
 }
 
 
@@ -249,25 +327,58 @@ def build(model: str, by_run: dict, cache: dict, tmp: str) -> dict | None:
         warn(f"{model} : aucun fichier {spec['package']} dans la fenêtre de prévision")
         return None
     todo = [f for f in chosen if f["url"] not in cache]
+    sigs = cache.get("_sigs")
     runs = sorted({f["run"] for f in chosen})
     print(f"[{model}] {len(chosen)} échéances (runs {', '.join(r[5:16] for r in runs)}), "
           f"{len(todo)} fichier(s) à télécharger")
 
-    def work(f):
+    def full(f):
+        path = download(f["url"], tmp)
+        size = os.path.getsize(path)
+        STATS[model]["fetched"] += size
+        STATS[model]["full"] += size
+        return path
+
+    def work(f, path=None):
         try:
-            path = download(f["url"], tmp)
+            if path is None and sigs:
+                path = ranged_download(f["url"], sigs, tmp, model)
+            ranged = path is not None and sigs is not None
+            path = path or full(f)
             try:
-                return f["url"], spec["extract"](path)
+                data = spec["extract"](path)
             finally:
                 os.remove(path)
+            if data is None and ranged:  # signatures périmées : on retente en entier
+                path = full(f)
+                try:
+                    data = spec["extract"](path)
+                finally:
+                    os.remove(path)
+            return f["url"], data
         except Exception as exc:  # un fichier défectueux ne doit pas priver la carte des autres
             warn(f"{model} : {os.path.basename(f['url'])} ignoré ({exc})")
             return f["url"], None
+
+    # Premier fichier téléchargé en entier pour apprendre où sont les paramètres utiles.
+    if todo and not sigs:
+        first = todo.pop(0)
+        path = full(first)
+        sigs = calibrate(path, spec["names"])
+        cache["_sigs"] = sigs
+        print(f"[{model}] signatures utiles : {sigs}")
+        url, data = work(first, path)
+        if data:
+            cache[url] = data
 
     with ThreadPoolExecutor(4) as pool:
         for url, data in pool.map(work, todo):
             if data:
                 cache[url] = data
+    st = STATS[model]
+    if st["full"]:
+        print(f"[{model}] téléchargé {st['fetched'] / 1e6:.1f} Mo sur {st['full'] / 1e6:.1f} Mo "
+              f"({100 * st['fetched'] / st['full']:.0f} %)")
 
     ok = [f for f in chosen if cache.get(f["url"])]
     if not ok:
@@ -305,12 +416,27 @@ def summary(result: dict) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cache", help="cache des fichiers déjà découpés (JSON, conservé entre passages)")
+    ap.add_argument("--state", default="state",
+                    help="dossier conservé entre passages : cache des fichiers découpés, dernière sortie")
     ap.add_argument("--out")
+    ap.add_argument("--min-interval", type=int, default=55 * 60,
+                    help="délai minimal entre deux rafraîchissements des prévisions (s)")
+    ap.add_argument("--force", action="store_true")
     ap.add_argument("--discover", action="store_true")
     a = ap.parse_args()
 
-    cache_all = read_json(a.cache) or {}
+    cache_path = os.path.join(a.state, "forecast_cache.json")
+    last_path = os.path.join(a.state, "forecast.json")
+    last = read_json(last_path)
+    if (a.out and last and not a.force and not a.discover
+            and time.time() - (last.get("generated") or 0) < a.min_interval):
+        write_json(a.out, last)
+        age = (time.time() - last["generated"]) / 60
+        print(f"prévisions de il y a {age:.0f} min réutilisées (rafraîchissement toutes les "
+              f"{a.min_interval // 60 + 5} min environ)")
+        return 0
+
+    cache_all = read_json(cache_path) or {}
     result = {"generated": int(time.time()), "bbox": BBOX, "arome": None, "waves": None}
     with tempfile.TemporaryDirectory() as tmp:
         for model in MODELS:
@@ -320,18 +446,21 @@ def main() -> int:
                     continue
                 cache = cache_all.get(model) or {}
                 result[model] = build(model, by_run, cache, tmp)
-                # on ne garde en cache que les fichiers encore utilisés
-                used = {u for f in by_run.values() for u in (x["url"] for x in f)}
+                # on ne garde en cache que les fichiers encore listés par data.gouv
+                used = {x["url"] for f in by_run.values() for x in f} | {"_sigs"}
                 cache_all[model] = {u: d for u, d in cache.items() if u in used}
             except Exception as exc:
                 warn(f"{model} : {exc}")
+            if not result[model] and last and last.get(model):
+                warn(f"{model} : on republie les prévisions précédentes")
+                result[model] = last[model]
     if a.discover or not a.out:
         return 0
-    if a.cache:
-        write_json(a.cache, cache_all)
+    write_json(cache_path, cache_all)
     if not (result["arome"] or result["waves"]):
         warn("aucune prévision disponible")
     write_json(a.out, result)
+    write_json(last_path, result)
     report = summary(result)
     print(report)
     if os.environ.get("GITHUB_STEP_SUMMARY"):

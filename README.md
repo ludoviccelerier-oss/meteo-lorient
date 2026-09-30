@@ -8,9 +8,9 @@ et kitesurfeurs du pays de Lorient.
 
 | Couche | Source | Fraîcheur |
 |---|---|---|
-| Vent réel (balises) | [windmorbihan.com](https://www.windmorbihan.com) — Beg Meil, Trévignon, Drenec, Kerroch, Groix, Étel… | toutes les 10 min |
-| Prévision de vent | Météo-France **AROME 0,01°** (≈ 1,3 km), paquet SP1 | à chaque run, jusqu'à +48 h |
-| Vagues | Météo-France **MFWAM 0,025°** (≈ 2,5 km) | à chaque run, jusqu'à +72 h |
+| Vent réel (balises) | [windmorbihan.com](https://www.windmorbihan.com) — Beg Meil, Trévignon, Drenec, Kerroch, Groix, Étel… | toutes les 5 min |
+| Prévision de vent | Météo-France **AROME 0,01°** (≈ 1,3 km), paquet SP1 | toutes les heures, jusqu'à +48 h |
+| Vagues | Météo-France **MFWAM 0,025°** (≈ 2,5 km) | toutes les heures, jusqu'à +48 h |
 
 - Curseur de temps et lecture animée ; bouton *Maintenant*.
 - Clic sur la carte : vent, rafales, hauteur / période / direction des vagues au point.
@@ -20,19 +20,22 @@ et kitesurfeurs du pays de Lorient.
 ## Fonctionnement
 
 Aucun serveur. Une tâche GitHub Actions (`.github/workflows/update.yml`) tourne
-toutes les 10 minutes :
+toutes les 5 minutes (prévisions recalculées une fois par heure) :
 
 1. `scripts/fetch_live.py` lit l'API JSON de windmorbihan et ajoute le relevé à
    l'historique 24 h (`data/live.json`).
 2. `scripts/fetch_forecast.py` inventorie les fichiers AROME et MFWAM via l'API
    data.gouv.fr et prend, pour chaque heure, **le run le plus récent qui la couvre**
    (data.gouv retire les premières échéances d'un run pendant que le suivant se
-   publie). Les GRIB2 sont découpés sur la zone ; un fichier déjà traité est gardé
-   en cache et jamais retéléchargé. Sortie : `data/forecast.json`.
-3. Page et données sont publiées sur GitHub Pages
-   (<https://ludoviccelerier-oss.github.io/meteo-lorient/>).
+   publie). Seuls les messages GRIB2 utiles sont téléchargés (requêtes partielles
+   HTTP Range : ni température ni humidité AROME, 3 paramètres de vagues sur 13),
+   découpés sur la zone ; un fichier déjà traité est gardé en cache et jamais
+   retéléchargé. Sortie : `data/forecast.json`.
+3. Les données sont publiées sur GitHub Pages
+   (<https://ludoviccelerier-oss.github.io/meteo-lorient/data/>) ; la page, elle,
+   est servie par Netlify (<https://meteo-lorient.netlify.app/>).
 
-**Netlify** sert la même page (`netlify.toml`, dossier `web/`) mais pas les données :
+**Netlify** sert la page (`netlify.toml`, dossier `web/`) mais pas les données :
 la page les lit sur GitHub Pages. Raison : sur l'offre gratuite Netlify, chaque
 déploiement coûte 15 crédits sur 300 par mois (≈ 20 déploiements) ; publier toutes
 les 10 minutes suspendrait le site en deux jours. Netlify ne redéploie donc qu'à
@@ -51,12 +54,20 @@ Coût : 0 € (dépôt public : minutes Actions, cache et Pages gratuits).
 ```bash
 pip install -r scripts/requirements.txt
 python scripts/fetch_live.py --out web/data/live.json
-python scripts/fetch_forecast.py --cache state/forecast_cache.json --out web/data/forecast.json
+python scripts/fetch_forecast.py --state state --out web/data/forecast.json
 python scripts/fetch_forecast.py --discover   # inventaire des fichiers Météo-France
 python -m http.server -d web 8000
 ```
 
 La zone couverte se règle dans `scripts/common.py` (`BBOX`).
+
+## Design, SEO, GEO
+
+Charte de [Bateaux de la rade](https://batobus.netlify.app/) (rouge Windorah `#DA4445`,
+Montserrat), site offert par [Windorah](https://windorah.fr). Référencement : texte
+lisible sans JavaScript, données structurées schema.org (application, balises géolocalisées,
+FAQ, éditeur), balises `geo.*`, `sitemap.xml`, `robots.txt` ouvert aux moteurs IA et
+`llms.txt` pour les moteurs de réponse.
 
 ## Limites connues
 

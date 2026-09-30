@@ -2,12 +2,15 @@
 "use strict";
 
 const MS_TO_KT = 1.94384;
-const LIVE_REFRESH_MS = 2 * 60 * 1000;
-// Les données sont publiées toutes les 10 min sur GitHub Pages (gratuit, sans quota de
-// déploiement). La page, elle, peut être servie ailleurs (Netlify) : elle va alors les y chercher.
+const LIVE_REFRESH_MS = 60 * 1000;
+// Les données sont publiées sur GitHub Pages (vent réel toutes les 5 min, prévisions toutes
+// les heures), la page peut être servie ailleurs (Netlify) : elle va alors les y chercher.
 const DATA_BASE = location.hostname.endsWith("github.io") || location.hostname === "localhost"
   ? "data/"
   : "https://ludoviccelerier-oss.github.io/meteo-lorient/data/";
+// Clé de cache alignée sur la cadence de publication : le navigateur et le CDN réutilisent
+// le même fichier tant qu'aucune nouvelle version ne peut exister.
+const BUCKET = { live: 5 * 60 * 1000, forecast: 15 * 60 * 1000 };
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
 
@@ -17,13 +20,26 @@ const WIND_STOPS = [[0, "#a6d8f0"], [6, "#7fd1a3"], [10, "#c8e65a"], [14, "#fee3
 const WAVE_STOPS = [[0, "#d6f3ff"], [0.5, "#9adcf6"], [1, "#4fb8f0"], [1.5, "#2f82d8"],
   [2, "#4b5bd0"], [3, "#8a44c8"], [4, "#c7338a"], [6, "#7a0030"]];
 
-const state = { live: null, fc: null, index: 0, playing: null, layers: {} };
+// Commune affichée sous le nom de chaque balise (nom windmorbihan → lieu)
+const TOWNS = {
+  "Beg Meil": "Fouesnant", "Pointe de Trévignon": "Trégunc", "Drenec": "Archipel des Glénan",
+  "Feu de Kerroch": "Ploemeur · entrée de la rade", "Groix Sémaphore": "Île de Groix",
+  "Semaphore d'Etel": "Barre d'Étel", "Isthme": "Presqu'île de Quiberon",
+};
+
+// Noms affichés (windmorbihan écrit parfois sans accents)
+const NAMES = { "Semaphore d'Etel": "Sémaphore d'Étel", "Groix Sémaphore": "Sémaphore de Groix", "Drenec": "Le Drenec" };
+const displayName = (s) => NAMES[s.name] || s.name;
+
+const state = { live: null, fc: null, index: 0, playing: null, markers: {} };
 
 // --- utilitaires ------------------------------------------------------------
 
 const $ = (id) => document.getElementById(id);
 const compass = (d) => (d == null ? "—" : COMPASS[Math.round(d / 22.5) % 16]);
 const fmt = (v, n = 0) => (v == null || Number.isNaN(v) ? "—" : v.toFixed(n));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const on = (id) => $(id).getAttribute("aria-pressed") === "true";
 
 function hexToRgb(h) {
   const n = parseInt(h.slice(1), 16);
@@ -48,9 +64,9 @@ const cssColor = (stops, v) => {
   return c ? `rgb(${c.join(",")})` : "#ccc";
 };
 
-async function getJSON(url) {
-  const r = await fetch(`${url}?t=${Math.floor(Date.now() / 60000)}`);
-  if (!r.ok) throw new Error(`${url} : ${r.status}`);
+async function getJSON(name, bucket) {
+  const r = await fetch(`${DATA_BASE}${name}?v=${Math.floor(Date.now() / bucket)}`);
+  if (!r.ok) throw new Error(`${name} : ${r.status}`);
   return r.json();
 }
 
@@ -62,9 +78,10 @@ function ago(epochSec) {
   return `il y a ${h} h ${String(m % 60).padStart(2, "0")}`;
 }
 
-const dayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", timeZone: "Europe/Paris" });
-const hourFmt = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
-
+const TZ = "Europe/Paris";
+const dayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", timeZone: TZ });
+const hourFmt = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+const dateFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: TZ });
 const parseTime = (iso) => new Date(iso);
 
 // Grille : valeur la plus proche d'un point (lat, lon)
@@ -81,7 +98,7 @@ function gridBounds(g) {
   return L.latLngBounds([south - g.dy / 2, g.lo1 - g.dx / 2], [g.la1 + g.dy / 2, east + g.dx / 2]);
 }
 
-function arrowSvg(deg, size, color, stroke = "#0b2239") {
+function arrowSvg(deg, size, color, stroke = "#333") {
   // deg : direction d'où vient le vent / la houle ; la flèche pointe là où il va.
   return `<svg width="${size}" height="${size}" viewBox="-10 -10 20 20" aria-hidden="true">
     <g transform="rotate(${(deg + 180) % 360})">
@@ -89,24 +106,36 @@ function arrowSvg(deg, size, color, stroke = "#0b2239") {
     </g></svg>`;
 }
 
+function sparkline(history, w = 220, h = 34) {
+  const pts = (history || []).filter((p) => p[0] >= Date.now() / 1000 - 6 * 3600);
+  if (pts.length < 2) return "";
+  const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  const vmax = Math.max(10, ...pts.map((p) => p[2] ?? p[1] ?? 0));
+  const x = (t) => ((t - t0) / Math.max(1, t1 - t0)) * w;
+  const y = (v) => h - 3 - ((v ?? 0) / vmax) * (h - 6);
+  const line = (k) => pts.filter((p) => p[k] != null).map((p) => `${x(p[0]).toFixed(1)},${y(p[k]).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Vent sur les 6 dernières heures">
+    <polyline points="${line(2)}" fill="none" stroke="#f46d43" stroke-width="1.2" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>
+    <polyline points="${line(1)}" fill="none" stroke="#DA4445" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+}
+
 // --- carte ------------------------------------------------------------------
 
 // Zone : de Concarneau à Étel, Groix et la rade de Lorient
 const ZONE = L.latLngBounds([47.58, -3.98], [47.92, -3.16]);
-const map = L.map("map", { zoomControl: true, attributionControl: true, minZoom: 9 }).fitBounds(ZONE);
+const map = L.map("map", { zoomControl: true, minZoom: 9 }).fitBounds(ZONE);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
-
 L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", {
   maxZoom: 18, opacity: 0.9,
   attribution: '<a href="https://www.openseamap.org">OpenSeaMap</a>',
 }).addTo(map);
-
 map.attributionControl.addAttribution(
-  'Vent réel <a href="https://www.windmorbihan.com">windmorbihan</a> · Prévisions © <a href="https://meteofrance.com">Météo-France</a> (AROME, MFWAM), <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">Licence Ouverte</a>'
+  'Vent réel <a href="https://www.windmorbihan.com">windmorbihan</a> · Prévisions © <a href="https://meteofrance.com">Météo-France</a>'
 );
 
 function rasterOverlay(grid, values, stops, opacity) {
@@ -117,64 +146,83 @@ function rasterOverlay(grid, values, stops, opacity) {
   const img = ctx.createImageData(grid.nx, grid.ny);
   for (let p = 0; p < values.length; p++) {
     const c = colorAt(stops, values[p]);
-    if (!c) continue;
-    img.data.set([c[0], c[1], c[2], 255], p * 4);
+    if (c) img.data.set([c[0], c[1], c[2], 255], p * 4);
   }
   ctx.putImageData(img, 0, 0);
-  return L.imageOverlay(canvas.toDataURL(), gridBounds(grid), { opacity, interactive: false, className: "raster" });
+  return L.imageOverlay(canvas.toDataURL(), gridBounds(grid), { opacity, interactive: false });
 }
 
 // --- vent réel --------------------------------------------------------------
 
 const liveLayer = L.layerGroup();
+const isStale = (last) => !last || Date.now() / 1000 - last.t > 30 * 60;
 
-function sparkline(history) {
-  const pts = history.filter((h) => h[0] >= Date.now() / 1000 - 6 * 3600);
-  if (pts.length < 2) return "";
-  const w = 220, h = 56, t0 = pts[0][0], t1 = pts[pts.length - 1][0];
-  const vmax = Math.max(10, ...pts.map((p) => p[2] ?? p[1] ?? 0));
-  const x = (t) => ((t - t0) / Math.max(1, t1 - t0)) * w;
-  const y = (v) => h - 4 - ((v ?? 0) / vmax) * (h - 8);
-  const line = (k) => pts.filter((p) => p[k] != null).map((p) => `${x(p[0]).toFixed(1)},${y(p[k]).toFixed(1)}`).join(" ");
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="Vent sur 6 heures">
-    <polyline points="${line(2)}" fill="none" stroke="#f46d43" stroke-width="1.2" stroke-dasharray="3 2"/>
-    <polyline points="${line(1)}" fill="none" stroke="#2f82d8" stroke-width="2"/>
-    <text x="2" y="10" font-size="10" fill="#5b6b7b">${Math.round(vmax)} kt</text>
-    <text x="${w - 2}" y="${h - 2}" font-size="10" fill="#5b6b7b" text-anchor="end">6 h</text>
-  </svg><div class="muted">bleu : vent moyen · orange : rafales</div>`;
+function popupHtml(s) {
+  const last = s.last;
+  if (!last) return `<h3>${esc(displayName(s))}</h3><div class="muted">Pas de relevé récent</div>`;
+  return `<h3>${esc(displayName(s))}</h3><table>
+      <tr><td>Vent moyen</td><td><b>${fmt(last.avg)} kt</b></td></tr>
+      <tr><td>Rafales</td><td><b>${fmt(last.gust)} kt</b></td></tr>
+      <tr><td>Direction</td><td>${compass(last.dir)} (${fmt(last.dir)}°)</td></tr>
+      ${last.temp != null ? `<tr><td>Température</td><td>${fmt(last.temp, 1)} °C</td></tr>` : ""}
+    </table><div class="muted">Relevé ${ago(last.t)}</div>`;
+}
+
+function visibleSensors() {
+  // capteurs listés mais muets (ex. Pen Men) masqués ; d'ouest en est
+  return (state.live?.sensors || []).filter((s) => s.last || s.history?.length).sort((a, b) => a.lon - b.lon);
 }
 
 function renderLive() {
   liveLayer.clearLayers();
-  if (!state.live) return;
-  for (const s of state.live.sensors) {
-    const last = s.last;
-    if (!last && !s.history?.length) continue; // capteur listé mais muet (ex. Pen Men)
-    const stale = !last || Date.now() / 1000 - last.t > 30 * 60;
-    const kt = last?.avg;
-    const color = cssColor(WIND_STOPS, kt);
-    const html = `<div class="pin${stale ? " stale" : ""}" style="border:2px solid ${color}">
-      ${last?.dir != null ? arrowSvg(last.dir, 22, color) : ""}<span>${fmt(kt)}${last?.gust != null ? `<small>/${fmt(last.gust)}</small>` : ""}</span></div>`;
+  state.markers = {};
+  const sensors = visibleSensors();
+  for (const s of sensors) {
+    const last = s.last, color = cssColor(WIND_STOPS, last?.avg);
+    const html = `<div class="pin${isStale(last) ? " stale" : ""}" style="border:2px solid ${color}">
+      ${last?.dir != null ? arrowSvg(last.dir, 22, color) : ""}<span>${fmt(last?.avg)}${last?.gust != null ? `<small>/${fmt(last.gust)}</small>` : ""}</span></div>`;
     const marker = L.marker([s.lat, s.lon], {
-      icon: L.divIcon({ className: "live-icon", html, iconSize: [0, 0] }),
-      keyboard: true, title: s.name,
-    });
-    marker.bindPopup(() => `<h3>${s.name}</h3>
-      ${last ? `<table>
-        <tr><td>Vent moyen</td><td><b>${fmt(last.avg)} kt</b></td></tr>
-        <tr><td>Rafales</td><td><b>${fmt(last.gust)} kt</b></td></tr>
-        <tr><td>Direction</td><td>${compass(last.dir)} (${fmt(last.dir)}°)</td></tr>
-        ${last.temp != null ? `<tr><td>Température</td><td>${fmt(last.temp, 1)} °C</td></tr>` : ""}
-      </table><div class="muted">Relevé ${ago(last.t)}</div>${sparkline(s.history || [])}`
-      : '<div class="muted">Pas de relevé récent</div>'}`, { maxWidth: 260 });
+      icon: L.divIcon({ className: "live-icon", html, iconSize: [0, 0] }), title: displayName(s),
+    }).bindPopup(() => popupHtml(s), { maxWidth: 260 });
     marker.on("click", (e) => L.DomEvent.stopPropagation(e));
     liveLayer.addLayer(marker);
+    state.markers[s.id] = marker;
   }
+
+  const list = $("board-list");
+  if (!sensors.length) {
+    list.innerHTML = '<p class="empty">Aucune balise disponible pour le moment.</p>';
+    return;
+  }
+  list.innerHTML = sensors.map((s) => {
+    const last = s.last;
+    return `<button type="button" class="station-card${isStale(last) ? " stale" : ""}" data-id="${esc(s.id)}">
+      <span><span class="station-name"><span class="dot" style="background:${cssColor(WIND_STOPS, last?.avg)}"></span>${esc(displayName(s))}</span><br>
+      <span class="station-town">${esc(TOWNS[s.name] || "")}</span></span>
+      <span class="station-wind">${last?.dir != null ? arrowSvg(last.dir, 26, cssColor(WIND_STOPS, last.avg)) : ""}
+        <span class="kt">${fmt(last?.avg)}<small> / ${fmt(last?.gust)} kt</small></span></span>
+      ${sparkline(s.history)}
+      <span class="station-meta"><span>${last ? `${compass(last.dir)} · ${fmt(last.dir)}°` : "—"}</span><span>${last ? ago(last.t) : "pas de relevé"}</span></span>
+    </button>`;
+  }).join("");
+  const updated = state.live.updated;
+  $("board-sub").textContent = `Balises windmorbihan, en nœuds (moyen / rafales) · mis à jour ${ago(updated)}`
+    + (state.live.stale ? " · source momentanément indisponible" : "");
 }
+
+$("board-list").addEventListener("click", (e) => {
+  const card = e.target.closest(".station-card");
+  const marker = card && state.markers[card.dataset.id];
+  if (!marker) return;
+  if (!on("l-live")) setLayer("l-live", true);
+  map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 11), { duration: 0.6 });
+  marker.openPopup();
+  if (window.matchMedia("(max-width: 900px)").matches) $("map").scrollIntoView({ behavior: "smooth", block: "center" });
+});
 
 async function loadLive() {
   try {
-    state.live = await getJSON(`${DATA_BASE}live.json`);
+    state.live = await getJSON("live.json", BUCKET.live);
     renderLive();
   } catch (e) {
     console.warn(e);
@@ -219,18 +267,18 @@ function renderForecast() {
   const a = state.fc?.arome;
   windRaster.clearLayers();
   waveLayer.clearLayers();
-  if (!a?.times?.length) return;
+  if (!a?.times?.length) { renderTime(); return; }
   const k = state.index;
 
-  windRaster.addLayer(rasterOverlay(a.grid, windSpeedsKt(a, k), WIND_STOPS, 0.45));
+  windRaster.addLayer(rasterOverlay(a.grid, windSpeedsKt(a, k), WIND_STOPS, 0.5));
   const data = velocityData(a, k);
   if (!velocity) {
     velocity = L.velocityLayer({
       displayValues: false, data, maxVelocity: 18, velocityScale: 0.006,
-      particleMultiplier: 1 / 150, lineWidth: 1.6, frameRate: 20,
-      colorScale: ["rgba(255,255,255,0.9)"],
+      particleMultiplier: 1 / 150, lineWidth: 1.5, frameRate: 20,
+      colorScale: ["rgba(30,40,55,0.75)"],
     });
-    if ($("l-wind").checked) velocity.addTo(map);
+    if (on("l-wind")) velocity.addTo(map);
   } else {
     velocity.setData(data);
   }
@@ -239,16 +287,14 @@ function renderForecast() {
   if (wi >= 0) {
     waveLayer.addLayer(rasterOverlay(w.grid, w.hs[wi], WAVE_STOPS, 0.65));
     const g = w.grid, dirs = w.dir?.[wi];
-    if (dirs) {
-      for (let j = 0; j < g.ny; j += 2) {
-        for (let i = 0; i < g.nx; i += 2) {
-          const d = dirs[j * g.nx + i];
-          if (d == null) continue;
-          waveLayer.addLayer(L.marker([g.la1 - j * g.dy, g.lo1 + i * g.dx], {
-            icon: L.divIcon({ className: "wave-arrow", html: arrowSvg(d, 16, "#fff", "#0b2239"), iconSize: [16, 16], iconAnchor: [8, 8] }),
-            interactive: false, keyboard: false,
-          }));
-        }
+    for (let j = 0; dirs && j < g.ny; j += 2) {
+      for (let i = 0; i < g.nx; i += 2) {
+        const d = dirs[j * g.nx + i];
+        if (d == null) continue;
+        waveLayer.addLayer(L.marker([g.la1 - j * g.dy, g.lo1 + i * g.dx], {
+          icon: L.divIcon({ className: "wave-arrow", html: arrowSvg(d, 16, "#fff"), iconSize: [16, 16], iconAnchor: [8, 8] }),
+          interactive: false, keyboard: false,
+        }));
       }
     }
   }
@@ -257,7 +303,7 @@ function renderForecast() {
 
 function renderTime() {
   const a = state.fc?.arome;
-  if (!a?.times?.length) { $("when-label").textContent = "—"; return; }
+  if (!a?.times?.length) { $("when-label").textContent = "Prévisions indisponibles"; return; }
   const t = parseTime(a.times[state.index]);
   const diffH = Math.round((t - Date.now()) / 3600000);
   const rel = diffH === 0 ? "maintenant" : diffH > 0 ? `+${diffH} h` : `${diffH} h`;
@@ -281,12 +327,13 @@ function setIndex(i) {
 }
 
 async function loadForecast() {
+  const previous = state.fc?.generated;
   try {
-    state.fc = await getJSON(`${DATA_BASE}forecast.json`);
+    state.fc = await getJSON("forecast.json", BUCKET.forecast);
   } catch (e) {
     console.warn(e);
-    state.fc = null;
   }
+  if (state.fc?.generated === previous && previous) return; // rien de nouveau
   const n = state.fc?.arome?.times?.length || 0;
   $("slider").max = Math.max(0, n - 1);
   $("slider").disabled = n === 0;
@@ -320,45 +367,49 @@ map.on("click", (e) => {
 
 // --- interface ----------------------------------------------------------------
 
-function legendScale(stops, unit) {
-  return `<div class="scale">${stops.map(([v, c]) => `<span style="background:${c}">${v}</span>`).join("")}</div>
-    <div class="title">${unit}</div>`;
+function legendScale(title, stops) {
+  return `<div><div>${title}</div><div class="scale">${stops.map(([v, c]) => `<span style="background:${c}">${v}</span>`).join("")}</div></div>`;
 }
 
 function renderLegend() {
   const parts = [];
-  if ($("l-live").checked || $("l-wind").checked) parts.push(`<div class="title">Vent (nœuds)</div>${legendScale(WIND_STOPS, "")}`);
-  if ($("l-waves").checked) parts.push(`<div class="title">Hauteur des vagues (m)</div>${legendScale(WAVE_STOPS, "")}`);
+  if (on("l-live") || on("l-wind")) parts.push(legendScale("Vent (nœuds)", WIND_STOPS));
+  if (on("l-waves")) parts.push(legendScale("Hauteur des vagues (m)", WAVE_STOPS));
   $("legend").innerHTML = parts.join("");
-  $("legend").hidden = parts.length === 0;
 }
 
 function renderStatus() {
   const bits = [];
-  if (state.live) bits.push(`Vent réel ${ago(state.live.updated)}${state.live.stale ? " (source indisponible)" : ""}`);
-  const run = (m) => m?.run ? `${m.model.split(" ")[0]} ${hourFmt.format(new Date(m.run))}` : null;
-  const runs = [run(state.fc?.arome), run(state.fc?.waves)].filter(Boolean);
-  if (runs.length) bits.push(`Run ${runs.join(" · ")}`);
-  if (!state.fc?.arome) bits.push("Prévisions indisponibles");
-  $("status").textContent = bits.join(" — ");
+  if (state.live) bits.push(`Vent réel ${ago(state.live.updated)}`);
+  if (state.fc?.generated) bits.push(`Prévisions ${ago(state.fc.generated)}`);
+  $("map-status").textContent = bits.join(" · ");
 }
 
-function toggle(id, layer, onMap) {
-  const apply = () => {
-    if ($(id).checked) onMap ? onMap(true) : layer.addTo(map);
-    else onMap ? onMap(false) : map.removeLayer(layer);
-    renderLegend();
-  };
-  $(id).addEventListener("change", apply);
-  apply();
+function renderClock() {
+  const now = new Date();
+  $("clock-time").textContent = hourFmt.format(now);
+  $("clock-date").textContent = dateFmt.format(now);
 }
 
-toggle("l-live", liveLayer);
-toggle("l-wind", null, (on) => {
-  if (on) { windRaster.addTo(map); if (velocity) velocity.addTo(map); }
-  else { map.removeLayer(windRaster); if (velocity) map.removeLayer(velocity); }
-});
-toggle("l-waves", waveLayer);
+const LAYERS = {
+  "l-live": (show) => (show ? liveLayer.addTo(map) : map.removeLayer(liveLayer)),
+  "l-wind": (show) => {
+    if (show) { windRaster.addTo(map); velocity?.addTo(map); }
+    else { map.removeLayer(windRaster); if (velocity) map.removeLayer(velocity); }
+  },
+  "l-waves": (show) => (show ? waveLayer.addTo(map) : map.removeLayer(waveLayer)),
+};
+
+function setLayer(id, show) {
+  $(id).setAttribute("aria-pressed", String(show));
+  LAYERS[id](show);
+  renderLegend();
+}
+
+for (const id of Object.keys(LAYERS)) {
+  $(id).addEventListener("click", () => setLayer(id, !on(id)));
+  setLayer(id, on(id));
+}
 
 $("slider").addEventListener("input", (e) => setIndex(Number(e.target.value)));
 $("now").addEventListener("click", () => setIndex(nearestNowIndex()));
@@ -367,16 +418,21 @@ $("play").addEventListener("click", () => {
     clearInterval(state.playing);
     state.playing = null;
     $("play").textContent = "▶";
+    $("play").setAttribute("aria-label", "Lecture de l'animation");
     return;
   }
   $("play").textContent = "❚❚";
+  $("play").setAttribute("aria-label", "Pause");
   state.playing = setInterval(() => {
     const n = Number($("slider").max) + 1;
     setIndex((state.index + 1) % Math.max(1, n));
   }, 900);
 });
 
+renderClock();
 loadLive();
 loadForecast();
+setInterval(renderClock, 15 * 1000);
 setInterval(loadLive, LIVE_REFRESH_MS);
+setInterval(loadForecast, 10 * 60 * 1000);
 setInterval(renderStatus, 60 * 1000);

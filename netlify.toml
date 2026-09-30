@@ -1,6 +1,7 @@
 # Netlify ne sert que la page : elle n'est redéployée qu'à chaque modification du code.
-# Les données (vent réel toutes les 10 min, prévisions) viennent de GitHub Pages,
-# pour ne pas consommer les crédits de déploiement Netlify (15 crédits par déploiement).
+# Les données (vent réel toutes les 5 min, prévisions toutes les heures) viennent de
+# GitHub Pages, pour ne pas consommer les crédits de déploiement Netlify
+# (15 crédits par déploiement sur 300 par mois en offre gratuite).
 [build]
   publish = "web"
   command = ""
@@ -11,7 +12,22 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# Page : toujours revalidée (déploiements rares, mais visibles immédiatement)
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Fichiers versionnés (?v=…) et logo : cache long
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Cache-Control = "public, max-age=300"
+    Cache-Control = "public, max-age=86400"
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, immutable"
