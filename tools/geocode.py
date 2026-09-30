@@ -3,14 +3,11 @@
 import json, time, urllib.parse, urllib.request
 
 QUERIES = [
-    "Plage du Kérou, Clohars-Carnoët",
-    "Plage du Loch, Guidel",
-    "Plage de Fort-Bloqué, Ploemeur",
-    "Plage du Pérello, Ploemeur",
-    "Grande Plage, Gâvres",
-    "Plage de Kerhillio, Erdeven",
-    "Plage de Toulhars, Larmor-Plage",
-    "Plage de Kersidan, Trégunc",
+    "Fort-Bloqué, Ploemeur",
+    "Plage du Fort-Bloqué",
+    "Fort Bloqué beach",
+    "Plage de Gâvres",
+    "Grande Plage Gâvres beach",
 ]
 for q in QUERIES:
     url = "https://nominatim.openstreetmap.org/search?" + urllib.parse.urlencode(
