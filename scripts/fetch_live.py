@@ -9,7 +9,7 @@ API JSON publique mais non documentée (repérée par github.com/XavierKain/live
 Chaque passage ajoute le relevé courant à l'historique publié précédemment
 (--previous), conservé sur HISTORY_HOURS heures.
 
-  python3 scripts/fetch_live.py --previous prev/live.json --out public/data/live.json
+  python3 scripts/fetch_live.py --previous state/live.json --out public/data/live.json
 """
 
 from __future__ import annotations

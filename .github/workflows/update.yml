@@ -6,11 +6,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      force:
-        description: "Retélécharger les prévisions même si le run est déjà publié"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -38,35 +33,32 @@ jobs:
 
       - run: pip install -r scripts/requirements.txt
 
-      # État du passage précédent (historique du vent réel, run des prévisions déjà traité) :
-      # évite de retélécharger ~600 Mo AROME toutes les 10 minutes.
+      # État conservé d'un passage à l'autre : historique du vent réel et fichiers de
+      # prévision déjà découpés (seuls les nouveaux GRIB sont téléchargés).
       - name: Restaurer l'état précédent
         uses: actions/cache/restore@v4
         with:
-          path: prev
+          path: state
           key: state-${{ github.run_id }}
           restore-keys: state-
 
       - name: Repli sur les données publiées
         run: |
-          mkdir -p prev public/data
-          [ -s prev/live.json ] || curl -fsSL "$SITE_URL/data/live.json" -o prev/live.json || rm -f prev/live.json
-          [ -s prev/forecast.json ] || curl -fsSL "$SITE_URL/data/forecast.json" -o prev/forecast.json || rm -f prev/forecast.json
+          mkdir -p state public/data
+          [ -s state/live.json ] || curl -fsSL "$SITE_URL/data/live.json" -o state/live.json || rm -f state/live.json
 
       - name: Vent réel (windmorbihan)
-        run: python scripts/fetch_live.py --previous prev/live.json --out public/data/live.json
+        run: python scripts/fetch_live.py --previous state/live.json --out public/data/live.json
 
       - name: Prévisions (AROME, MFWAM)
-        run: >
-          python scripts/fetch_forecast.py --previous prev/forecast.json
-          --out public/data/forecast.json ${{ inputs.force && '--force' || '' }}
+        run: python scripts/fetch_forecast.py --cache state/forecast_cache.json --out public/data/forecast.json
 
       - name: Sauvegarder l'état
-        run: rm -rf prev && cp -r public/data prev
+        run: cp public/data/live.json state/live.json
 
       - uses: actions/cache/save@v4
         with:
-          path: prev
+          path: state
           key: state-${{ github.run_id }}
 
       - run: cp -r web/. public/

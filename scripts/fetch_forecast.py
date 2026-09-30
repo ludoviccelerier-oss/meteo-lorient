@@ -4,10 +4,11 @@ Prévisions : vent AROME 0,01° (≈ 1,3 km) et vagues MFWAM 0,025°, Météo-Fr
 
 Les fichiers GRIB2 sont repérés via l'API data.gouv.fr (liste des ressources de chaque
 jeu de données), téléchargés, découpés sur la zone (common.BBOX) et réduits en un seul
-JSON léger pour la carte. Un modèle dont le dernier run est déjà publié (--previous)
-n'est pas retéléchargé.
+JSON léger pour la carte. Chaque heure prend le run le plus récent qui la couvre ;
+un fichier déjà découpé n'est jamais retéléchargé
+(cache --cache, conservé entre passages par GitHub Actions).
 
-  python3 scripts/fetch_forecast.py --previous prev/forecast.json --out public/data/forecast.json
+  python3 scripts/fetch_forecast.py --cache state/forecast_cache.json --out public/data/forecast.json
   python3 scripts/fetch_forecast.py --discover      # inventaire des fichiers, sans téléchargement
 """
 
@@ -86,15 +87,6 @@ def inventory(model: str) -> dict:
     return by_run
 
 
-def pick_run(by_run: dict, pkg: str | None = None) -> str | None:
-    """Run le plus récent dont le paquet voulu est au complet jusqu'à l'échéance utile."""
-    for run in sorted(by_run, reverse=True):
-        files = [f for f in by_run[run] if pkg is None or f["pkg"] == pkg]
-        if files and max(f["last"] for f in files) >= 24:
-            return run
-    return None
-
-
 # --- lecture GRIB ------------------------------------------------------------
 
 def crop_messages(path: str, wanted: set[str] | None = None) -> list[dict]:
@@ -168,19 +160,32 @@ def flat(a: np.ndarray, nd: int = 1) -> list:
     return [None if math.isnan(x) else round(float(x), nd) for x in a.ravel()]
 
 
-def iso(run: str, step: int) -> str:
-    t = datetime.fromisoformat(run.replace("Z", "+00:00")).timestamp() + step * 3600
-    return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+def select_files(files: list[dict], max_h: int, now: float) -> list[dict]:
+    """Pour chaque heure à venir, le fichier du run le plus récent qui la couvre.
+
+    data.gouv retire au fil de l'eau les premières échéances de chaque run, pendant que
+    le run suivant se publie : un seul run laisserait un trou sur les heures en cours.
+    Horaire jusqu'à +24 h, puis toutes les 3 h (3× moins de Mo, lisibilité identique).
+    """
+    start = (int(now) // 3600 - 1) * 3600
+    best: dict[int, dict] = {}
+    for f in files:
+        if f["first"] != f["last"]:
+            continue  # paquets par tranche d'échéances : non utilisés par ces jeux de données
+        valid = int(datetime.fromisoformat(f["run"].replace("Z", "+00:00")).timestamp()) + f["last"] * 3600
+        ahead = (valid - start) // 3600
+        if ahead < 0 or ahead > max_h or (ahead > 25 and (valid // 3600) % 3):
+            continue
+        if valid not in best or f["run"] > best[valid]["run"]:
+            best[valid] = {**f, "valid": valid}
+    return [best[v] for v in sorted(best)]
 
 
-def wanted_leads(files: list[dict], max_h: int) -> list[dict]:
-    """Horaire jusqu'à +24 h, puis toutes les 3 h : autant de lisibilité pour 3× moins de Mo."""
-    keep = [f for f in files if f["first"] <= max_h
-            and (f["last"] <= 24 or f["last"] % 3 == 0 or f["first"] != f["last"])]
-    return sorted(keep, key=lambda f: f["first"])
+def iso_of(epoch: int) -> str:
+    return datetime.fromtimestamp(epoch, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
 
 
-# --- AROME -------------------------------------------------------------------
+# --- extraction par fichier ------------------------------------------------------
 
 U_NAMES, V_NAMES = {"10u", "u10"}, {"10v", "v10"}
 GUST_NAMES = {"10fg", "fg10", "i10fg", "gust", "max_10fg"}
@@ -188,116 +193,94 @@ GUST_NAMES = {"10fg", "fg10", "i10fg", "gust", "max_10fg"}
 UGUST_NAMES = {"max_10efg", "10efg", "10ugust", "ugust"}
 VGUST_NAMES = {"max_10nfg", "10nfg", "10vgust", "vgust"}
 
-
-def build_arome(by_run: dict, tmp: str) -> dict | None:
-    run = pick_run(by_run, AROME_PACKAGE)
-    if not run:
-        warn(f"AROME : aucun run complet du paquet {AROME_PACKAGE}")
-        return None
-    files = wanted_leads([f for f in by_run[run] if f["pkg"] == AROME_PACKAGE], MAX_LEAD_H["arome"])
-    print(f"[arome] run {run} : {len(files)} fichiers {AROME_PACKAGE}")
-    with ThreadPoolExecutor(4) as pool:
-        paths = list(pool.map(lambda f: download(f["url"], tmp), files))
-
-    steps: dict[int, dict] = defaultdict(dict)
-    grid, seen = None, set()
-    for path in paths:
-        for m in crop_messages(path):
-            seen.add(f"{m['short']} ({m['name']}, niv {m['level']})")
-            if m["short"] in U_NAMES and m["level"] == 10:
-                steps[m["step"]]["u"] = m["values"]
-            elif m["short"] in V_NAMES and m["level"] == 10:
-                steps[m["step"]]["v"] = m["values"]
-            elif m["short"] in GUST_NAMES:
-                steps[m["step"]]["gust"] = m["values"]
-            elif m["short"] in UGUST_NAMES:
-                steps[m["step"]]["ug"] = m["values"]
-            elif m["short"] in VGUST_NAMES:
-                steps[m["step"]]["vg"] = m["values"]
-            else:
-                continue
-            grid = grid or m["grid"]
-        os.remove(path)
-    print("[arome] paramètres lus :", "; ".join(sorted(seen)))
-
-    times, u, v, gust = [], [], [], []
-    for step in sorted(steps):
-        s = steps[step]
-        if "u" not in s or "v" not in s:
-            continue
-        g = s.get("gust")
-        if g is None and "ug" in s and "vg" in s:
-            g = np.hypot(s["ug"], s["vg"])
-        times.append(iso(run, step))
-        u.append(flat(s["u"]))
-        v.append(flat(s["v"]))
-        gust.append(flat(g) if g is not None else None)
-    if not times:
-        warn("AROME : vent à 10 m introuvable dans les fichiers (voir paramètres lus)")
-        return None
-    print(f"[arome] {len(times)} échéances, grille {grid['nx']}×{grid['ny']}")
-    return {"model": f"AROME 0,01° ({AROME_PACKAGE})", "run": run, "unit": "m/s",
-            "grid": grid, "times": times, "u": u, "v": v, "gust": gust}
-
-
-# --- MFWAM -------------------------------------------------------------------
-
 HS_NAMES = {"swh", "VHM0", "hs"}
 DIR_NAMES = {"mwd", "VMDR", "dirpw"}
 TP_NAMES = {"pp1d", "mwp", "perpw", "mp2", "VTPK", "VTM02"}
 
 
-def build_waves(by_run: dict, tmp: str) -> dict | None:
-    run = pick_run(by_run)
-    if not run:
-        warn("MFWAM : aucun run disponible")
+def extract_arome(path: str) -> dict | None:
+    got, grid, seen = {}, None, set()
+    for m in crop_messages(path):
+        seen.add(m["short"])
+        s = m["short"]
+        key = ("u" if s in U_NAMES and m["level"] == 10 else "v" if s in V_NAMES and m["level"] == 10
+               else "gust" if s in GUST_NAMES else "ug" if s in UGUST_NAMES
+               else "vg" if s in VGUST_NAMES else None)
+        if key:
+            got[key], grid = m["values"], grid or m["grid"]
+    if "u" not in got or "v" not in got:
+        warn(f"AROME : vent à 10 m absent de {os.path.basename(path)} (lus : {sorted(seen)})")
         return None
-    pkgs = sorted({f["pkg"] for f in by_run[run]})
-    print(f"[waves] run {run}, paquets {pkgs}")
+    g = got.get("gust")
+    if g is None and "ug" in got and "vg" in got:
+        g = np.hypot(got["ug"], got["vg"])
+    return {"grid": grid, "u": flat(got["u"]), "v": flat(got["v"]),
+            "gust": flat(g) if g is not None else None}
 
-    # Le contenu exact des paquets n'est pas figé dans la doc : on ouvre le premier
-    # fichier de chacun et on garde celui qui porte la hauteur significative.
-    chosen, seen = None, {}
-    for pkg in pkgs:
-        first = min((f for f in by_run[run] if f["pkg"] == pkg), key=lambda f: f["first"])
-        msgs = crop_messages(download(first["url"], tmp))
-        seen[pkg] = sorted({f"{m['short']} ({m['name']})" for m in msgs})
-        if any(m["short"] in HS_NAMES for m in msgs):
-            chosen = pkg
-            break
-    for pkg, names in seen.items():
-        print(f"[waves] {pkg} : {'; '.join(names)}")
+
+def extract_waves(path: str) -> dict | None:
+    got, grid = {}, None
+    for m in crop_messages(path, HS_NAMES | DIR_NAMES | TP_NAMES):
+        key = "hs" if m["short"] in HS_NAMES else "dir" if m["short"] in DIR_NAMES else "tp"
+        if key == "tp" and "tp" in got and m["short"] != "pp1d":
+            continue  # la période pic (pp1d) prime sur les périodes moyennes
+        got[key], grid = m["values"], grid or m["grid"]
+    if "hs" not in got:
+        warn(f"MFWAM : hauteur significative absente de {os.path.basename(path)}")
+        return None
+    return {"grid": grid, "hs": flat(got["hs"]),
+            "dir": flat(got["dir"], 0) if "dir" in got else None,
+            "tp": flat(got["tp"]) if "tp" in got else None}
+
+
+MODELS = {
+    "arome": {"package": AROME_PACKAGE, "fields": ("u", "v", "gust"), "extract": extract_arome,
+              "label": f"AROME 0,01° ({AROME_PACKAGE})", "extra": {"unit": "m/s"}},
+    "waves": {"package": os.environ.get("WAVES_PACKAGE", "SP1"), "fields": ("hs", "dir", "tp"),
+              "extract": extract_waves, "label": "MFWAM 0,025°", "extra": {}},
+}
+
+
+def build(model: str, by_run: dict, cache: dict, tmp: str) -> dict | None:
+    spec = MODELS[model]
+    files = [f for run in by_run.values() for f in run if f["pkg"] == spec["package"]]
+    chosen = select_files(files, MAX_LEAD_H[model], time.time())
     if not chosen:
-        warn("MFWAM : hauteur significative introuvable")
+        warn(f"{model} : aucun fichier {spec['package']} dans la fenêtre de prévision")
         return None
+    todo = [f for f in chosen if f["url"] not in cache]
+    runs = sorted({f["run"] for f in chosen})
+    print(f"[{model}] {len(chosen)} échéances (runs {', '.join(r[5:16] for r in runs)}), "
+          f"{len(todo)} fichier(s) à télécharger")
 
-    files = wanted_leads([f for f in by_run[run] if f["pkg"] == chosen], MAX_LEAD_H["waves"])
+    def work(f):
+        try:
+            path = download(f["url"], tmp)
+            try:
+                return f["url"], spec["extract"](path)
+            finally:
+                os.remove(path)
+        except Exception as exc:  # un fichier défectueux ne doit pas priver la carte des autres
+            warn(f"{model} : {os.path.basename(f['url'])} ignoré ({exc})")
+            return f["url"], None
+
     with ThreadPoolExecutor(4) as pool:
-        paths = list(pool.map(lambda f: download(f["url"], tmp), files))
+        for url, data in pool.map(work, todo):
+            if data:
+                cache[url] = data
 
-    steps: dict[int, dict] = defaultdict(dict)
-    grid = None
-    for path in paths:
-        for m in crop_messages(path, HS_NAMES | DIR_NAMES | TP_NAMES):
-            key = ("hs" if m["short"] in HS_NAMES else "dir" if m["short"] in DIR_NAMES else "tp")
-            if key == "tp" and "tp" in steps[m["step"]] and m["short"] != "pp1d":
-                continue  # la période pic (pp1d) prime sur les périodes moyennes
-            steps[m["step"]][key] = m["values"]
-            grid = grid or m["grid"]
-        os.remove(path)
-
-    times, hs, dr, tp = [], [], [], []
-    for step in sorted(steps):
-        s = steps[step]
-        if step > MAX_LEAD_H["waves"] or "hs" not in s:
-            continue
-        times.append(iso(run, step))
-        hs.append(flat(s["hs"]))
-        dr.append(flat(s["dir"], 0) if "dir" in s else None)
-        tp.append(flat(s["tp"]) if "tp" in s else None)
-    print(f"[waves] {len(times)} échéances, grille {grid['nx']}×{grid['ny']}")
-    return {"model": f"MFWAM 0,025° ({chosen})", "run": run, "grid": grid,
-            "times": times, "hs": hs, "dir": dr, "tp": tp}
+    ok = [f for f in chosen if cache.get(f["url"])]
+    if not ok:
+        return None
+    grid = cache[ok[-1]["url"]]["grid"]
+    ok = [f for f in ok if cache[f["url"]]["grid"] == grid]  # grille homogène
+    out = {"model": spec["label"], "run": ok[-1]["run"] if ok else None,
+           "runs": sorted({f["run"] for f in ok}), "grid": grid,
+           "times": [iso_of(f["valid"]) for f in ok], **spec["extra"]}
+    for field in spec["fields"]:
+        out[field] = [cache[f["url"]][field] for f in ok]
+    out["run"] = max(out["runs"])
+    return out
 
 
 # --- main --------------------------------------------------------------------
@@ -310,49 +293,42 @@ def summary(result: dict) -> str:
         speeds = [math.hypot(u, v) * 1.94384 for k in range(len(a["times"]))
                   for u, v in zip(a["u"][k], a["v"][k]) if u is not None and v is not None]
         gusts = [g * 1.94384 for row in a["gust"] if row for g in row if g is not None]
-        lines.append(f"AROME run {a['run']} : {len(a['times'])} échéances {a['times'][0]} → {a['times'][-1]}, "
+        lines.append(f"AROME runs {', '.join(a['runs'])} : {len(a['times'])} échéances {a['times'][0]} → {a['times'][-1]}, "
                      f"vent max {max(speeds):.0f} kt, rafale max {max(gusts):.0f} kt" if gusts else
-                     f"AROME run {a['run']} : {len(a['times'])} échéances, SANS rafales")
+                     f"AROME : {len(a['times'])} échéances, SANS rafales")
     if w:
         hs = [x for row in w["hs"] for x in row if x is not None]
-        lines.append(f"MFWAM run {w['run']} : {len(w['times'])} échéances {w['times'][0]} → {w['times'][-1]}, "
+        lines.append(f"MFWAM runs {', '.join(w['runs'])} : {len(w['times'])} échéances {w['times'][0]} → {w['times'][-1]}, "
                      f"Hs {min(hs):.1f}–{max(hs):.1f} m")
     return "\n".join(lines)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--previous")
+    ap.add_argument("--cache", help="cache des fichiers déjà découpés (JSON, conservé entre passages)")
     ap.add_argument("--out")
     ap.add_argument("--discover", action="store_true")
-    ap.add_argument("--force", action="store_true", help="ignorer le cache --previous")
     a = ap.parse_args()
 
-    previous = read_json(a.previous) or {}
-    result = {"generated": previous.get("generated"), "bbox": BBOX,
-              "arome": previous.get("arome"), "waves": previous.get("waves")}
-    changed = False
+    cache_all = read_json(a.cache) or {}
+    result = {"generated": int(time.time()), "bbox": BBOX, "arome": None, "waves": None}
     with tempfile.TemporaryDirectory() as tmp:
-        for model, builder in (("arome", build_arome), ("waves", build_waves)):
+        for model in MODELS:
             try:
                 by_run = inventory(model)
                 if a.discover:
                     continue
-                latest = pick_run(by_run, AROME_PACKAGE if model == "arome" else None)
-                if not a.force and latest and (previous.get(model) or {}).get("run") == latest:
-                    print(f"[{model}] run {latest} déjà publié, rien à faire")
-                    continue
-                built = builder(by_run, tmp)
-                if built:
-                    result[model], changed = built, True
+                cache = cache_all.get(model) or {}
+                result[model] = build(model, by_run, cache, tmp)
+                # on ne garde en cache que les fichiers encore utilisés
+                used = {u for f in by_run.values() for u in (x["url"] for x in f)}
+                cache_all[model] = {u: d for u, d in cache.items() if u in used}
             except Exception as exc:
                 warn(f"{model} : {exc}")
-    if a.discover:
+    if a.discover or not a.out:
         return 0
-    if changed:
-        result["generated"] = int(time.time())
-    if not a.out:
-        return 0
+    if a.cache:
+        write_json(a.cache, cache_all)
     if not (result["arome"] or result["waves"]):
         warn("aucune prévision disponible")
     write_json(a.out, result)

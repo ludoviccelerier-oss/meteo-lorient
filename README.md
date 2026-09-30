@@ -24,9 +24,11 @@ toutes les 10 minutes :
 
 1. `scripts/fetch_live.py` lit l'API JSON de windmorbihan et ajoute le relevé à
    l'historique 24 h (`data/live.json`).
-2. `scripts/fetch_forecast.py` repère le dernier run AROME et MFWAM via l'API
-   data.gouv.fr, télécharge les GRIB2, les découpe sur la zone et produit
-   `data/forecast.json`. Un run déjà publié n'est pas retéléchargé.
+2. `scripts/fetch_forecast.py` inventorie les fichiers AROME et MFWAM via l'API
+   data.gouv.fr et prend, pour chaque heure, **le run le plus récent qui la couvre**
+   (data.gouv retire les premières échéances d'un run pendant que le suivant se
+   publie). Les GRIB2 sont découpés sur la zone ; un fichier déjà traité est gardé
+   en cache et jamais retéléchargé. Sortie : `data/forecast.json`.
 3. Page et données sont publiées sur GitHub Pages
    (<https://ludoviccelerier-oss.github.io/meteo-lorient/>).
 
@@ -49,7 +51,7 @@ Coût : 0 € (dépôt public : minutes Actions, cache et Pages gratuits).
 ```bash
 pip install -r scripts/requirements.txt
 python scripts/fetch_live.py --out web/data/live.json
-python scripts/fetch_forecast.py --out web/data/forecast.json
+python scripts/fetch_forecast.py --cache state/forecast_cache.json --out web/data/forecast.json
 python scripts/fetch_forecast.py --discover   # inventaire des fichiers Météo-France
 python -m http.server -d web 8000
 ```
