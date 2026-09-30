@@ -143,6 +143,8 @@ h1, h2, h3, p { margin: 0; }
 .board-head h2 { font-size: 18px; font-weight: 700; }
 .board-sub { font-size: 12.5px; color: var(--text-2); }
 .board-list { display: flex; flex-direction: column; gap: 10px; }
+.board-head-2 { margin-top: 10px; }
+.spot-pin { border-radius: 8px !important; }
 .board-tip { font-size: 12.5px; color: var(--text-2); }
 .empty { font-size: 13.5px; color: var(--text-2); }
 

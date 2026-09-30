@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 import eccodes
 import numpy as np
 
-from common import BBOX, fetch, fetch_json, fetch_range, read_json, warn, write_json
+from common import BBOX, SURF_SPOTS, fetch, fetch_json, fetch_range, read_json, warn, write_json
 
 DATASETS = {
     "arome": "paquets-arome-resolution-0-01deg",
@@ -394,6 +394,55 @@ def build(model: str, by_run: dict, cache: dict, tmp: str) -> dict | None:
     return out
 
 
+# --- spots de surf ------------------------------------------------------------
+
+def nearest_cell(grid: dict, values: list, lat: float, lon: float, max_ring: int = 3):
+    """Indice de la maille valide la plus proche (les mailles côtières MFWAM sont souvent
+    marquées terre : on cherche la mer dans un rayon de max_ring mailles)."""
+    j0 = round((grid["la1"] - lat) / grid["dy"])
+    i0 = round((lon - grid["lo1"]) / grid["dx"])
+    best = None
+    for j in range(j0 - max_ring, j0 + max_ring + 1):
+        for i in range(i0 - max_ring, i0 + max_ring + 1):
+            if not (0 <= i < grid["nx"] and 0 <= j < grid["ny"]):
+                continue
+            if values[j * grid["nx"] + i] is None:
+                continue
+            clat, clon = grid["la1"] - j * grid["dy"], grid["lo1"] + i * grid["dx"]
+            d = math.hypot((clat - lat) * 111.2, (clon - lon) * 111.2 * math.cos(math.radians(lat)))
+            if best is None or d < best[0]:
+                best = (d, j * grid["nx"] + i, clat, clon)
+    return best
+
+
+def build_spots(result: dict) -> list[dict]:
+    """Séries temporelles par spot : vagues (Hs, période pic, direction) et vent AROME."""
+    w, a = result.get("waves"), result.get("arome")
+    out = []
+    for spot in SURF_SPOTS:
+        item = {**spot}
+        if w and w["times"]:
+            cell = nearest_cell(w["grid"], w["hs"][0], spot["lat"], spot["lon"])
+            if cell:
+                d, p, clat, clon = cell
+                item["waves"] = {"cell": [round(clat, 3), round(clon, 3)], "km": round(d, 1),
+                                 "times": w["times"],
+                                 "hs": [row[p] if row else None for row in w["hs"]],
+                                 "tp": [row[p] if row else None for row in w["tp"]],
+                                 "dir": [row[p] if row else None for row in w["dir"]]}
+            else:
+                warn(f"spot {spot['name']} : aucune maille de mer MFWAM à moins de 3 mailles")
+        if a and a["times"]:
+            cell = nearest_cell(a["grid"], a["u"][0], spot["lat"], spot["lon"], max_ring=0)
+            if cell:
+                p = cell[1]
+                item["wind"] = {"times": a["times"],
+                                "u": [row[p] for row in a["u"]], "v": [row[p] for row in a["v"]],
+                                "gust": [row[p] if row else None for row in a["gust"]]}
+        out.append(item)
+    return out
+
+
 # --- main --------------------------------------------------------------------
 
 def summary(result: dict) -> str:
@@ -411,6 +460,15 @@ def summary(result: dict) -> str:
         hs = [x for row in w["hs"] for x in row if x is not None]
         lines.append(f"MFWAM runs {', '.join(w['runs'])} : {len(w['times'])} échéances {w['times'][0]} → {w['times'][-1]}, "
                      f"Hs {min(hs):.1f}–{max(hs):.1f} m")
+    for s in result.get("spots") or []:
+        wv = s.get("waves")
+        if wv:
+            hs = [x for x in wv["hs"] if x is not None]
+            tp = [x for x in wv["tp"] if x is not None]
+            lines.append(f"Spot {s['name']} : maille à {wv['km']} km, Hs {min(hs):.1f}–{max(hs):.1f} m, "
+                         f"période {min(tp):.0f}–{max(tp):.0f} s" if hs and tp else f"Spot {s['name']} : valeurs vides")
+        else:
+            lines.append(f"Spot {s['name']} : SANS vagues")
     return "\n".join(lines)
 
 
@@ -459,6 +517,7 @@ def main() -> int:
     write_json(cache_path, cache_all)
     if not (result["arome"] or result["waves"]):
         warn("aucune prévision disponible")
+    result["spots"] = build_spots(result)
     write_json(a.out, result)
     write_json(last_path, result)
     report = summary(result)

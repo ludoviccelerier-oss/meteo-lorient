@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Météo Lorient · Vent en temps réel, prévisions et vagues de Concarneau à Étel</title>
-  <meta name="description" content="Vent en temps réel des balises de Groix, Kerroch, Étel, Trévignon et Beg Meil, prévisions de vent AROME à 1,3 km et hauteur des vagues sur une carte : rade de Lorient, Groix, Concarneau, Étel. Gratuit, pour marins, surfeurs et kitesurfeurs.">
+  <meta name="description" content="Vent en temps réel (Groix, Kerroch, Étel, Trévignon, Beg Meil), prévisions de vent AROME et hauteur et période des vagues sur les spots de surf de Guidel, Fort-Bloqué, Gâvres et Kerhillio. Gratuit, pour marins, surfeurs et kitesurfeurs.">
   <link rel="canonical" href="https://meteo-lorient.netlify.app/">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="geo.region" content="FR-56">
@@ -51,10 +51,15 @@
       "about": [
         { "@id": "https://meteo-lorient.netlify.app/#balise-beg-meil" },
         { "@id": "https://meteo-lorient.netlify.app/#balise-trevignon" },
-        { "@id": "https://meteo-lorient.netlify.app/#balise-drenec" },
         { "@id": "https://meteo-lorient.netlify.app/#balise-kerroch" },
         { "@id": "https://meteo-lorient.netlify.app/#balise-groix" },
-        { "@id": "https://meteo-lorient.netlify.app/#balise-etel" }
+        { "@id": "https://meteo-lorient.netlify.app/#balise-etel" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-kerou" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-loch" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-fort-bloque" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-perello" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-gavres" },
+        { "@id": "https://meteo-lorient.netlify.app/#spot-kerhillio" }
       ],
       "relatedLink": "https://batobus.netlify.app/"
     },
@@ -70,17 +75,23 @@
     },
     { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-beg-meil", "name": "Balise de vent de Beg Meil (Fouesnant)", "geo": { "@type": "GeoCoordinates", "latitude": 47.8545, "longitude": -3.9762 } },
     { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-trevignon", "name": "Balise de vent de la pointe de Trévignon (Trégunc)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7933, "longitude": -3.8554 } },
-    { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-drenec", "name": "Balise de vent du Drenec (archipel des Glénan)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7179, "longitude": -4.0088 } },
     { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-kerroch", "name": "Balise de vent du feu de Kerroch (Ploemeur)", "geo": { "@type": "GeoCoordinates", "latitude": 47.6995, "longitude": -3.4610 } },
     { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-groix", "name": "Balise de vent du sémaphore de Groix", "geo": { "@type": "GeoCoordinates", "latitude": 47.6523, "longitude": -3.5023 } },
     { "@type": "Place", "@id": "https://meteo-lorient.netlify.app/#balise-etel", "name": "Balise de vent du sémaphore d'Étel", "geo": { "@type": "GeoCoordinates", "latitude": 47.6461, "longitude": -3.2144 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-kerou", "name": "Spot de surf Le Kérou (Le Pouldu, Clohars-Carnoët)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7678, "longitude": -3.5625 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-loch", "name": "Spot de surf Le Loc'h (Guidel-Plages)", "geo": { "@type": "GeoCoordinates", "latitude": 47.7544, "longitude": -3.5142 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-fort-bloque", "name": "Spot de surf Fort-Bloqué (Ploemeur)", "geo": { "@type": "GeoCoordinates", "latitude": 47.735, "longitude": -3.5048 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-perello", "name": "Spot de surf Le Pérello (Ploemeur)", "geo": { "@type": "GeoCoordinates", "latitude": 47.6994, "longitude": -3.4451 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-gavres", "name": "Spot de surf Grande plage de Gâvres (Gâvres, Plouhinec)", "geo": { "@type": "GeoCoordinates", "latitude": 47.6762, "longitude": -3.2675 } },
+    { "@type": "Beach", "@id": "https://meteo-lorient.netlify.app/#spot-kerhillio", "name": "Spot de surf Kerhillio (Erdeven)", "geo": { "@type": "GeoCoordinates", "latitude": 47.6108, "longitude": -3.1675 } },
     {
       "@type": "FAQPage",
       "@id": "https://meteo-lorient.netlify.app/#faq",
       "mainEntity": [
-        { "@type": "Question", "name": "Où voir le vent en temps réel à Lorient et à Groix ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures." } },
+        { "@type": "Question", "name": "Où voir le vent en temps réel à Lorient et à Groix ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon et de Beg Meil : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures." } },
         { "@type": "Question", "name": "D'où viennent les prévisions de vent ?", "acceptedAnswer": { "@type": "Answer", "text": "Du modèle AROME de Météo-France à la résolution de 0,01° (environ 1,3 km), publié en données ouvertes. La carte est rafraîchie toutes les heures et prend, pour chaque heure, le calcul le plus récent. Elle couvre les 48 prochaines heures : heure par heure jusqu'à +24 h, puis toutes les 3 heures." } },
         { "@type": "Question", "name": "Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?", "acceptedAnswer": { "@type": "Answer", "text": "La couche Vagues affiche le modèle MFWAM de Météo-France (maille d'environ 2,5 km) : hauteur significative des vagues, période pic et direction de la houle, sur 48 heures. Touchez la carte pour lire les valeurs à un endroit précis." } },
+        { "@type": "Question", "name": "Quelles vagues sur les spots de surf de Guidel, Fort-Bloqué, Gâvres et Kerhillio ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient donne, heure par heure sur 48 heures, la hauteur des vagues, la période pic et la direction de la houle sur les 6 spots de surf les plus connus entre Le Pouldu et Erdeven : Le Kérou (Le Pouldu), Le Loc'h (Guidel-Plages), Fort-Bloqué et Le Pérello (Ploemeur), la Grande plage de Gâvres et Kerhillio (Erdeven), avec le vent prévu sur chaque spot. Source : modèle de vagues MFWAM de Météo-France." } },
         { "@type": "Question", "name": "Les données de Météo Lorient sont-elles officielles ?", "acceptedAnswer": { "@type": "Answer", "text": "Non. Météo Lorient est un site indépendant qui réutilise des données publiques. Les prévisions sont indicatives : avant de prendre la mer, consultez le bulletin météo marine officiel de Météo-France et les avis de coup de vent." } },
         { "@type": "Question", "name": "Qui a créé Météo Lorient ?", "acceptedAnswer": { "@type": "Answer", "text": "Météo Lorient est un site gratuit, sans publicité ni compte à créer, offert par Windorah, agence immobilière bretonne basée à Locmiquélic, pour les habitants et les usagers de la mer du pays de Lorient." } }
       ]
@@ -95,7 +106,7 @@
   <link rel="preconnect" href="https://ludoviccelerier-oss.github.io" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <div class="offer">
@@ -124,6 +135,7 @@
         <button type="button" class="chip" id="l-live" aria-pressed="true">Vent réel</button>
         <button type="button" class="chip" id="l-wind" aria-pressed="true">Prévision vent</button>
         <button type="button" class="chip" id="l-waves" aria-pressed="false">Vagues</button>
+        <button type="button" class="chip" id="l-spots" aria-pressed="true">Spots de surf</button>
       </div>
       <div class="map-wrap">
         <div id="map" role="application" aria-label="Carte interactive de Concarneau à Étel"></div>
@@ -148,6 +160,13 @@
       <div id="board-list" class="board-list">
         <p class="empty">Chargement des balises…</p>
       </div>
+      <div class="board-head board-head-2">
+        <h2 id="spot-title">Vagues sur les spots de surf</h2>
+        <p class="board-sub" id="spot-sub">Hauteur, période et direction de la houle</p>
+      </div>
+      <div id="spot-list" class="board-list">
+        <p class="empty">Chargement des prévisions de vagues…</p>
+      </div>
       <p class="board-tip">Touchez la carte pour lire la prévision de vent et de vagues à un endroit précis, à l'heure choisie sous la carte.</p>
     </section>
   </main>
@@ -171,12 +190,22 @@
     <ul class="seo-list">
       <li><strong>Beg Meil</strong>, Fouesnant · 47,854° N, 3,976° O</li>
       <li><strong>Pointe de Trévignon</strong>, Trégunc · 47,793° N, 3,855° O</li>
-      <li><strong>Le Drenec</strong>, archipel des Glénan · 47,718° N, 4,009° O</li>
       <li><strong>Feu de Kerroch</strong>, Ploemeur, à l'entrée de la rade de Lorient · 47,700° N, 3,461° O</li>
       <li><strong>Sémaphore de Groix</strong>, île de Groix · 47,652° N, 3,502° O</li>
       <li><strong>Sémaphore d'Étel</strong>, barre d'Étel · 47,646° N, 3,214° O</li>
     </ul>
     <p>Vent moyen, rafales et direction sont relevés toutes les 5 minutes, avec la courbe des 6 dernières heures.</p>
+
+    <h3>Les spots de surf : hauteur et période des vagues</h3>
+    <ul class="seo-list">
+      <li><strong>Le Kérou</strong>, Le Pouldu (Clohars-Carnoët)</li>
+      <li><strong>Le Loc'h</strong>, Guidel-Plages</li>
+      <li><strong>Fort-Bloqué</strong>, Ploemeur</li>
+      <li><strong>Le Pérello</strong>, Ploemeur</li>
+      <li><strong>Grande plage de Gâvres</strong>, Gâvres et Plouhinec</li>
+      <li><strong>Kerhillio</strong>, Erdeven</li>
+    </ul>
+    <p>Pour chaque spot : hauteur significative des vagues, période pic (en secondes), direction de la houle et vent prévu, heure par heure sur 48 heures.</p>
 
     <h3>D'où viennent les données</h3>
     <ul class="seo-list">
@@ -187,9 +216,10 @@
 
     <h3>Questions fréquentes</h3>
     <div class="faq">
-      <details><summary>Où voir le vent en temps réel à Lorient et à Groix ?</summary><p>Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures.</p></details>
+      <details><summary>Où voir le vent en temps réel à Lorient et à Groix ?</summary><p>Météo Lorient affiche sur une carte le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon et de Beg Meil : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes, avec la courbe des 6 dernières heures.</p></details>
       <details><summary>D'où viennent les prévisions de vent ?</summary><p>Du modèle AROME de Météo-France à la résolution de 0,01° (environ 1,3 km), publié en données ouvertes. La carte est rafraîchie toutes les heures et prend, pour chaque heure, le calcul le plus récent. Elle couvre les 48 prochaines heures : heure par heure jusqu'à +24 h, puis toutes les 3 heures.</p></details>
       <details><summary>Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?</summary><p>La couche Vagues affiche le modèle MFWAM de Météo-France (maille d'environ 2,5 km) : hauteur significative des vagues, période pic et direction de la houle, sur 48 heures. Touchez la carte pour lire les valeurs à un endroit précis.</p></details>
+      <details><summary>Quelles vagues sur les spots de surf de Guidel, Fort-Bloqué, Gâvres et Kerhillio ?</summary><p>Météo Lorient donne, heure par heure sur 48 heures, la hauteur des vagues, la période pic et la direction de la houle sur les 6 spots de surf les plus connus entre Le Pouldu et Erdeven : Le Kérou (Le Pouldu), Le Loc'h (Guidel-Plages), Fort-Bloqué et Le Pérello (Ploemeur), la Grande plage de Gâvres et Kerhillio (Erdeven), avec le vent prévu sur chaque spot. Source : modèle de vagues MFWAM de Météo-France.</p></details>
       <details><summary>Les données de Météo Lorient sont-elles officielles ?</summary><p>Non. Météo Lorient est un site indépendant qui réutilise des données publiques. Les prévisions sont indicatives : avant de prendre la mer, consultez le bulletin météo marine officiel de Météo-France et les avis de coup de vent.</p></details>
       <details><summary>Qui a créé Météo Lorient ?</summary><p>Météo Lorient est un site gratuit, sans publicité ni compte à créer, offert par Windorah, agence immobilière bretonne basée à Locmiquélic, pour les habitants et les usagers de la mer du pays de Lorient.</p></details>
     </div>
@@ -219,6 +249,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.js" defer></script>
-  <script src="app.js?v=2" defer></script>
+  <script src="app.js?v=3" defer></script>
 </body>
 </html>

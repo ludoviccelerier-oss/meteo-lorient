@@ -13,7 +13,6 @@ Source : réseau de capteurs windmorbihan (https://www.windmorbihan.com), porté
 
 - Beg Meil (Fouesnant) · GPS 47.8545, -3.9762
 - Pointe de Trévignon (Trégunc) · GPS 47.7933, -3.8554
-- Le Drenec (archipel des Glénan) · GPS 47.7179, -4.0088
 - Feu de Kerroch (Ploemeur, entrée de la rade de Lorient) · GPS 47.6995, -3.4610
 - Sémaphore de Groix (île de Groix) · GPS 47.6523, -3.5023
 - Sémaphore d'Étel (barre d'Étel) · GPS 47.6461, -3.2144
@@ -26,11 +25,22 @@ Source : modèle AROME de Météo-France, résolution 0,01° (environ 1,3 km), d
 
 Source : modèle MFWAM de Météo-France, résolution 0,025° (environ 2,5 km), données ouvertes (https://www.data.gouv.fr/datasets/paquets-de-modele-de-vagues-mfwam-resolution-0-025deg). Hauteur significative des vagues, période pic et direction moyenne, sur 48 heures.
 
+## Spots de surf
+
+Pour chacun des 6 spots, heure par heure sur 48 heures : hauteur significative des vagues (m), période pic (s), direction de la houle et vent prévu (nœuds). Valeurs du modèle MFWAM au point de mer le plus proche.
+
+- Le Kérou (Le Pouldu, Clohars-Carnoët) · GPS 47.7678, -3.5625
+- Le Loc'h (Guidel-Plages) · GPS 47.7544, -3.5142
+- Fort-Bloqué (Ploemeur) · GPS 47.7350, -3.5048
+- Le Pérello (Ploemeur) · GPS 47.6994, -3.4451
+- Grande plage de Gâvres (Gâvres, Plouhinec) · GPS 47.6762, -3.2675
+- Kerhillio (Erdeven) · GPS 47.6108, -3.1675
+
 ## Questions fréquentes
 
 ### Où voir le vent en temps réel à Lorient et à Groix ?
 
-Météo Lorient affiche le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon, de Beg Meil et du Drenec aux Glénan : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes.
+Météo Lorient affiche le vent mesuré par les balises windmorbihan du feu de Kerroch (Ploemeur), du sémaphore de Groix, du sémaphore d'Étel, de la pointe de Trévignon et de Beg Meil : vent moyen, rafales et direction, en nœuds, mis à jour toutes les 5 minutes.
 
 ### D'où viennent les prévisions de vent ?
 
@@ -39,6 +49,10 @@ Du modèle AROME de Météo-France à 0,01° (environ 1,3 km), rafraîchi toutes
 ### Comment connaître la hauteur des vagues à Groix, Guidel ou Étel ?
 
 La couche Vagues affiche le modèle MFWAM de Météo-France : hauteur significative, période pic et direction de la houle, sur 48 heures. Toucher la carte donne les valeurs à un endroit précis.
+
+### Quelles vagues sur les spots de surf de Guidel, Fort-Bloqué, Gâvres et Kerhillio ?
+
+Météo Lorient donne, heure par heure sur 48 heures, la hauteur des vagues, la période pic et la direction de la houle sur les 6 spots de surf les plus connus entre Le Pouldu et Erdeven : Le Kérou (Le Pouldu), Le Loc'h (Guidel-Plages), Fort-Bloqué et Le Pérello (Ploemeur), la Grande plage de Gâvres et Kerhillio (Erdeven), avec le vent prévu sur chaque spot. Source : modèle de vagues MFWAM de Météo-France.
 
 ### Les données sont-elles officielles ?
 

@@ -168,9 +168,12 @@ function popupHtml(s) {
     </table><div class="muted">Relevé ${ago(last.t)}</div>`;
 }
 
+const MAX_AGE_S = 2 * 3600;
 function visibleSensors() {
-  // capteurs listés mais muets (ex. Pen Men) masqués ; d'ouest en est
-  return (state.live?.sensors || []).filter((s) => s.last || s.history?.length).sort((a, b) => a.lon - b.lon);
+  // Balises sans relevé depuis 2 h (ex. Pen Men, Lann Bihoué) : masquées. D'ouest en est.
+  const now = Date.now() / 1000;
+  return (state.live?.sensors || []).filter((s) => s.last && now - s.last.t < MAX_AGE_S)
+    .sort((a, b) => a.lon - b.lon);
 }
 
 function renderLive() {
@@ -267,7 +270,7 @@ function renderForecast() {
   const a = state.fc?.arome;
   windRaster.clearLayers();
   waveLayer.clearLayers();
-  if (!a?.times?.length) { renderTime(); return; }
+  if (!a?.times?.length) { renderTime(); renderSpots(); return; }
   const k = state.index;
 
   windRaster.addLayer(rasterOverlay(a.grid, windSpeedsKt(a, k), WIND_STOPS, 0.5));
@@ -299,6 +302,7 @@ function renderForecast() {
     }
   }
   renderTime();
+  renderSpots();
 }
 
 function renderTime() {
@@ -341,6 +345,106 @@ async function loadForecast() {
   renderStatus();
 }
 
+// --- spots de surf ------------------------------------------------------------
+
+const spotLayer = L.layerGroup();
+const dirFrom = (u, v) => (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360;
+
+function spotAt(spot, time) {
+  // Valeurs du spot à l'heure choisie (échéance la plus proche, à 3 h près)
+  const out = {};
+  const t = parseTime(time).getTime();
+  const pick = (times) => {
+    let best = -1, diff = Infinity;
+    times.forEach((x, i) => { const d = Math.abs(parseTime(x) - t); if (d < diff) { diff = d; best = i; } });
+    return diff <= 3 * 3600 * 1000 ? best : -1;
+  };
+  const w = spot.waves;
+  if (w) {
+    const i = pick(w.times);
+    if (i >= 0) Object.assign(out, { hs: w.hs[i], tp: w.tp[i], wdir: w.dir[i] });
+  }
+  const v = spot.wind;
+  if (v) {
+    const i = pick(v.times);
+    if (i >= 0 && v.u[i] != null && v.v[i] != null) {
+      out.wind = Math.hypot(v.u[i], v.v[i]) * MS_TO_KT;
+      out.windDir = dirFrom(v.u[i], v.v[i]);
+      out.gust = v.gust?.[i] != null ? v.gust[i] * MS_TO_KT : null;
+    }
+  }
+  return out;
+}
+
+function hsBars(spot) {
+  // Hauteur des vagues sur les 48 h à venir, une barre par échéance
+  const w = spot.waves;
+  if (!w) return "";
+  const now = Date.now() - 3600 * 1000;
+  const pts = w.times.map((t, i) => [parseTime(t).getTime(), w.hs[i]]).filter(([t, v]) => t >= now && v != null);
+  if (pts.length < 2) return "";
+  const max = Math.max(1.5, ...pts.map((p) => p[1])), W = 220, H = 30, bw = W / pts.length;
+  const sel = state.fc?.arome?.times?.[state.index] ? parseTime(state.fc.arome.times[state.index]).getTime() : 0;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Hauteur des vagues sur 48 heures">
+    ${pts.map(([t, v], k) => {
+      const h = Math.max(1, (v / max) * (H - 2));
+      const on = Math.abs(t - sel) < 1.6 * 3600 * 1000;
+      return `<rect x="${(k * bw + 0.5).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${Math.max(1, bw - 1).toFixed(1)}" height="${h.toFixed(1)}" fill="${on ? "#DA4445" : cssColor(WAVE_STOPS, v)}"/>`;
+    }).join("")}
+  </svg>`;
+}
+
+function spotPopup(spot, x) {
+  return `<h3>${esc(spot.name)}</h3><div class="muted">${esc(spot.town)} · ${$("when-label").textContent}</div>
+    <table>
+      <tr><td>Vagues</td><td><b>${fmt(x.hs, 1)} m</b></td></tr>
+      <tr><td>Période</td><td><b>${fmt(x.tp)} s</b></td></tr>
+      <tr><td>Houle de</td><td>${compass(x.wdir)}${x.wdir != null ? ` (${fmt(x.wdir)}°)` : ""}</td></tr>
+      <tr><td>Vent</td><td>${fmt(x.wind)} kt ${compass(x.windDir)}${x.gust != null ? ` · raf. ${fmt(x.gust)}` : ""}</td></tr>
+    </table>
+    ${spot.waves ? `<div class="muted">Modèle MFWAM : point de mer à ${String(spot.waves.km).replace(".", ",")} km du spot</div>` : ""}`;
+}
+
+function renderSpots() {
+  spotLayer.clearLayers();
+  const spots = state.fc?.spots || [];
+  const time = state.fc?.arome?.times?.[state.index] || state.fc?.waves?.times?.[0];
+  const list = $("spot-list");
+  if (!spots.length || !time) {
+    list.innerHTML = '<p class="empty">Prévisions de vagues indisponibles pour le moment.</p>';
+    return;
+  }
+  $("spot-sub").textContent = `Hauteur, période et direction de la houle · ${$("when-label").textContent}`;
+  list.innerHTML = spots.map((spot) => {
+    const x = spotAt(spot, time);
+    const color = cssColor(WAVE_STOPS, x.hs);
+    spotLayer.addLayer(L.marker([spot.lat, spot.lon], {
+      icon: L.divIcon({ className: "live-icon", iconSize: [0, 0],
+        html: `<div class="pin spot-pin" style="border:2px solid ${color}">${x.wdir != null ? arrowSvg(x.wdir, 20, color) : ""}<span>${fmt(x.hs, 1)}<small> m · ${fmt(x.tp)} s</small></span></div>` }),
+      title: spot.name,
+    }).bindPopup(spotPopup(spot, x), { maxWidth: 260 }).on("click", (e) => L.DomEvent.stopPropagation(e)));
+    return `<button type="button" class="station-card spot-card" data-spot="${esc(spot.id)}">
+      <span><span class="station-name"><span class="dot" style="background:${color}"></span>${esc(spot.name)}</span><br>
+      <span class="station-town">${esc(spot.town)}</span></span>
+      <span class="station-wind">${x.wdir != null ? arrowSvg(x.wdir, 24, color) : ""}
+        <span class="kt">${fmt(x.hs, 1)}<small> m · ${fmt(x.tp)} s</small></span></span>
+      ${hsBars(spot)}
+      <span class="station-meta"><span>Houle de ${compass(x.wdir)}</span><span>Vent ${fmt(x.wind)} kt ${compass(x.windDir)}</span></span>
+    </button>`;
+  }).join("");
+}
+
+$("spot-list").addEventListener("click", (e) => {
+  const card = e.target.closest(".spot-card");
+  const spot = card && (state.fc?.spots || []).find((s) => s.id === card.dataset.spot);
+  if (!spot) return;
+  if (!on("l-spots")) setLayer("l-spots", true);
+  map.flyTo([spot.lat, spot.lon], Math.max(map.getZoom(), 12), { duration: 0.6 });
+  const time = state.fc.arome?.times?.[state.index];
+  L.popup({ maxWidth: 260 }).setLatLng([spot.lat, spot.lon]).setContent(spotPopup(spot, spotAt(spot, time))).openOn(map);
+  if (window.matchMedia("(max-width: 900px)").matches) $("map").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 // --- clic sur la carte : prévision au point ---------------------------------
 
 map.on("click", (e) => {
@@ -374,7 +478,7 @@ function legendScale(title, stops) {
 function renderLegend() {
   const parts = [];
   if (on("l-live") || on("l-wind")) parts.push(legendScale("Vent (nœuds)", WIND_STOPS));
-  if (on("l-waves")) parts.push(legendScale("Hauteur des vagues (m)", WAVE_STOPS));
+  if (on("l-waves") || on("l-spots")) parts.push(legendScale("Hauteur des vagues (m)", WAVE_STOPS));
   $("legend").innerHTML = parts.join("");
 }
 
@@ -398,6 +502,7 @@ const LAYERS = {
     else { map.removeLayer(windRaster); if (velocity) map.removeLayer(velocity); }
   },
   "l-waves": (show) => (show ? waveLayer.addTo(map) : map.removeLayer(waveLayer)),
+  "l-spots": (show) => (show ? spotLayer.addTo(map) : map.removeLayer(spotLayer)),
 };
 
 function setLayer(id, show) {

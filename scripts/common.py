@@ -13,6 +13,17 @@ from urllib.request import Request, urlopen
 # Zone : de Concarneau (ouest) à la ria d'Étel (est), Groix et la rade de Lorient.
 BBOX = {"south": 47.55, "north": 47.95, "west": -4.05, "east": -3.10}
 
+# Les 6 spots de surf les plus connus de la zone, d'ouest en est.
+# Coordonnées : OpenStreetMap / Nominatim (plages, relevé du 30/09/2026).
+SURF_SPOTS = [
+    {"id": "kerou", "name": "Le Kérou", "town": "Le Pouldu, Clohars-Carnoët", "lat": 47.7678, "lon": -3.5625},
+    {"id": "loch", "name": "Le Loc'h", "town": "Guidel-Plages", "lat": 47.7544, "lon": -3.5142},
+    {"id": "fort-bloque", "name": "Fort-Bloqué", "town": "Ploemeur", "lat": 47.7350, "lon": -3.5048},
+    {"id": "perello", "name": "Le Pérello", "town": "Ploemeur", "lat": 47.6994, "lon": -3.4451},
+    {"id": "gavres", "name": "Grande plage de Gâvres", "town": "Gâvres · Plouhinec", "lat": 47.6762, "lon": -3.2675},
+    {"id": "kerhillio", "name": "Kerhillio", "town": "Erdeven", "lat": 47.6108, "lon": -3.1675},
+]
+
 UA = "meteo-lorient/1.0 (+https://github.com/ludoviccelerier-oss/meteo-lorient)"
 
 
