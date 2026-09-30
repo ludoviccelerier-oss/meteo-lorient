@@ -8,7 +8,7 @@ et kitesurfeurs du pays de Lorient.
 
 | Couche | Source | Fraîcheur |
 |---|---|---|
-| Vent réel (balises) | [windmorbihan.com](https://www.windmorbihan.com) — Kerroch, Groix… | toutes les 10 min |
+| Vent réel (balises) | [windmorbihan.com](https://www.windmorbihan.com) — Beg Meil, Trévignon, Drenec, Kerroch, Groix, Étel… | toutes les 10 min |
 | Prévision de vent | Météo-France **AROME 0,01°** (≈ 1,3 km), paquet SP1 | à chaque run, jusqu'à +48 h |
 | Vagues | Météo-France **MFWAM 0,025°** (≈ 2,5 km) | à chaque run, jusqu'à +72 h |
 
@@ -27,14 +27,22 @@ toutes les 10 minutes :
 2. `scripts/fetch_forecast.py` repère le dernier run AROME et MFWAM via l'API
    data.gouv.fr, télécharge les GRIB2, les découpe sur la zone et produit
    `data/forecast.json`. Un run déjà publié n'est pas retéléchargé.
-3. La page statique (`web/`) et les données sont publiées sur GitHub Pages.
+3. Page et données sont publiées sur GitHub Pages
+   (<https://ludoviccelerier-oss.github.io/meteo-lorient/>).
 
-Coût : 0 € (dépôt public : minutes Actions et Pages gratuites).
+**Netlify** sert la même page (`netlify.toml`, dossier `web/`) mais pas les données :
+la page les lit sur GitHub Pages. Raison : sur l'offre gratuite Netlify, chaque
+déploiement coûte 15 crédits sur 300 par mois (≈ 20 déploiements) ; publier toutes
+les 10 minutes suspendrait le site en deux jours. Netlify ne redéploie donc qu'à
+chaque modification du code.
+
+Coût : 0 € (dépôt public : minutes Actions, cache et Pages gratuits).
 
 ## Mise en route (une seule fois)
 
-*Settings → Pages → Build and deployment → Source : **GitHub Actions***, puis
-*Actions → Mise à jour de la carte → Run workflow*.
+1. GitHub : *Settings → Pages → Build and deployment → Source : **GitHub Actions***.
+2. Netlify : *Add new site → Import from Git →* `meteo-lorient` (réglages lus dans
+   `netlify.toml`, rien à saisir).
 
 ## En local
 

@@ -3,6 +3,11 @@
 
 const MS_TO_KT = 1.94384;
 const LIVE_REFRESH_MS = 2 * 60 * 1000;
+// Les données sont publiées toutes les 10 min sur GitHub Pages (gratuit, sans quota de
+// déploiement). La page, elle, peut être servie ailleurs (Netlify) : elle va alors les y chercher.
+const DATA_BASE = location.hostname.endsWith("github.io") || location.hostname === "localhost"
+  ? "data/"
+  : "https://ludoviccelerier-oss.github.io/meteo-lorient/data/";
 const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
   "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
 
@@ -144,6 +149,7 @@ function renderLive() {
   if (!state.live) return;
   for (const s of state.live.sensors) {
     const last = s.last;
+    if (!last && !s.history?.length) continue; // capteur listé mais muet (ex. Pen Men)
     const stale = !last || Date.now() / 1000 - last.t > 30 * 60;
     const kt = last?.avg;
     const color = cssColor(WIND_STOPS, kt);
@@ -168,7 +174,7 @@ function renderLive() {
 
 async function loadLive() {
   try {
-    state.live = await getJSON("data/live.json");
+    state.live = await getJSON(`${DATA_BASE}live.json`);
     renderLive();
   } catch (e) {
     console.warn(e);
@@ -276,7 +282,7 @@ function setIndex(i) {
 
 async function loadForecast() {
   try {
-    state.fc = await getJSON("data/forecast.json");
+    state.fc = await getJSON(`${DATA_BASE}forecast.json`);
   } catch (e) {
     console.warn(e);
     state.fc = null;

@@ -1,0 +1,17 @@
+# Netlify ne sert que la page : elle n'est redéployée qu'à chaque modification du code.
+# Les données (vent réel toutes les 10 min, prévisions) viennent de GitHub Pages,
+# pour ne pas consommer les crédits de déploiement Netlify (15 crédits par déploiement).
+[build]
+  publish = "web"
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=300"

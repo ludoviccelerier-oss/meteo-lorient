@@ -183,8 +183,10 @@ def wanted_leads(files: list[dict], max_h: int) -> list[dict]:
 # --- AROME -------------------------------------------------------------------
 
 U_NAMES, V_NAMES = {"10u", "u10"}, {"10v", "v10"}
-GUST_NAMES = {"10fg", "fg10", "i10fg", "gust", "10efg"}
-UGUST_NAMES, VGUST_NAMES = {"10ugust", "ugust", "efg10u"}, {"10vgust", "vgust", "efg10v"}
+GUST_NAMES = {"10fg", "fg10", "i10fg", "gust", "max_10fg"}
+# AROME SP1 publie la rafale en composantes : max_10efg (est) / max_10nfg (nord)
+UGUST_NAMES = {"max_10efg", "10efg", "10ugust", "ugust"}
+VGUST_NAMES = {"max_10nfg", "10nfg", "10vgust", "vgust"}
 
 
 def build_arome(by_run: dict, tmp: str) -> dict | None:
