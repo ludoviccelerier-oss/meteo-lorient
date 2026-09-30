@@ -302,6 +302,24 @@ def build_waves(by_run: dict, tmp: str) -> dict | None:
 
 # --- main --------------------------------------------------------------------
 
+def summary(result: dict) -> str:
+    """Contrôle de vraisemblance, affiché dans le résumé de chaque passage GitHub Actions."""
+    lines = []
+    a, w = result.get("arome"), result.get("waves")
+    if a:
+        speeds = [math.hypot(u, v) * 1.94384 for k in range(len(a["times"]))
+                  for u, v in zip(a["u"][k], a["v"][k]) if u is not None and v is not None]
+        gusts = [g * 1.94384 for row in a["gust"] if row for g in row if g is not None]
+        lines.append(f"AROME run {a['run']} : {len(a['times'])} échéances {a['times'][0]} → {a['times'][-1]}, "
+                     f"vent max {max(speeds):.0f} kt, rafale max {max(gusts):.0f} kt" if gusts else
+                     f"AROME run {a['run']} : {len(a['times'])} échéances, SANS rafales")
+    if w:
+        hs = [x for row in w["hs"] for x in row if x is not None]
+        lines.append(f"MFWAM run {w['run']} : {len(w['times'])} échéances {w['times'][0]} → {w['times'][-1]}, "
+                     f"Hs {min(hs):.1f}–{max(hs):.1f} m")
+    return "\n".join(lines)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--previous")
@@ -338,6 +356,11 @@ def main() -> int:
     if not (result["arome"] or result["waves"]):
         warn("aucune prévision disponible")
     write_json(a.out, result)
+    report = summary(result)
+    print(report)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
+            fh.write("### Prévisions\n\n" + report.replace("\n", "  \n") + "\n")
     print(f"écrit {a.out} ({os.path.getsize(a.out) / 1e6:.2f} Mo)")
     return 0
 
