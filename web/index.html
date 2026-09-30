@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Météo Lorient</title>
+  <meta name="description" content="Vent réel, prévisions AROME et vagues de Concarneau à Étel : Groix, rade de Lorient. Pour marins, surfeurs et kitesurfeurs.">
+  <meta name="theme-color" content="#0b2239">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Météo Lorient</h1>
+    <nav class="layers" aria-label="Couches">
+      <label><input type="checkbox" id="l-live" checked> Vent réel</label>
+      <label><input type="checkbox" id="l-wind" checked> Prévision vent</label>
+      <label><input type="checkbox" id="l-waves"> Vagues</label>
+    </nav>
+  </header>
+
+  <main class="map-wrap">
+    <div id="map" aria-label="Carte"></div>
+    <aside class="legend" id="legend"></aside>
+    <div class="status" id="status" role="status"></div>
+  </main>
+
+  <section class="timeline" aria-label="Échéance de prévision">
+    <button id="play" type="button" aria-label="Lecture">▶</button>
+    <input id="slider" type="range" min="0" max="0" value="0" step="1" aria-label="Heure de prévision">
+    <div class="when">
+      <strong id="when-label">—</strong>
+      <button id="now" type="button">Maintenant</button>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-velocity@2.1.4/dist/leaflet-velocity.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

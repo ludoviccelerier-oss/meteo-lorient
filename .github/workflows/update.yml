@@ -1,0 +1,69 @@
+name: Mise à jour de la carte
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # vent réel ; les prévisions ne sont retéléchargées qu'à chaque nouveau run
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Retélécharger les prévisions même si le run est déjà publié"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - run: pip install -r scripts/requirements.txt
+
+      - name: Récupérer les données déjà publiées
+        run: |
+          mkdir -p prev public/data
+          curl -fsSL "$SITE_URL/data/live.json" -o prev/live.json || rm -f prev/live.json
+          curl -fsSL "$SITE_URL/data/forecast.json" -o prev/forecast.json || rm -f prev/forecast.json
+
+      - name: Vent réel (windmorbihan)
+        run: python scripts/fetch_live.py --previous prev/live.json --out public/data/live.json
+
+      - name: Prévisions (AROME, MFWAM)
+        run: >
+          python scripts/fetch_forecast.py --previous prev/forecast.json
+          --out public/data/forecast.json ${{ inputs.force && '--force' || '' }}
+
+      - run: cp -r web/. public/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
